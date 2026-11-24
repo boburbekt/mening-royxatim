@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1015">
+<title>Mening ro‘yxatim — anime, manga, kino</title>
+<script>
+  document.documentElement.dataset.theme = localStorage.getItem("mening-royxatim-theme") || "violet";
+</script>
+<style>
+  :root{
+    --bg:#0e1015;--panel:#161920;--panel2:#1d2129;--line:#2a2f3a;--line2:#3a4150;
+    --text:#e9ebf1;--muted:#8a92a4;--accent:#ff5c8a;--on-accent:#1a0810;
+    --done:#3ecf8e;--watching:#4da3ff;--plan:#f5b942;--dropped:#9aa2b3;
+  }
+  /* Rang mavzulari — ⋯ menyusidan tanlanadi */
+  [data-theme=violet]{--bg:#0f0e17;--panel:#17161f;--panel2:#1f1d2a;--line:#2c2a3b;--line2:#3f3b55;--accent:#9d8cff;--on-accent:#140f33}
+  [data-theme=ocean]{--bg:#0b1016;--panel:#121a22;--panel2:#19232d;--line:#24313e;--line2:#36495d;--accent:#38bdf8;--on-accent:#04202e}
+  [data-theme=emerald]{--bg:#0c110f;--panel:#131a17;--panel2:#1a231f;--line:#26332d;--line2:#384a41;--accent:#34d399;--on-accent:#052417}
+  [data-theme=amber]{--bg:#12100d;--panel:#1a1713;--panel2:#231f1a;--line:#332d25;--line2:#4a4135;--accent:#ffa94d;--on-accent:#2a1500}
+  [data-theme=rose]{--accent:#ff5c8a;--on-accent:#1a0810}
+  [data-theme=light]{--bg:#f4f3f8;--panel:#ffffff;--panel2:#eeedf4;--line:#dddbe7;--line2:#c4c1d4;--text:#1b1a24;--muted:#5f5c70;--accent:#6d5ce8;--on-accent:#ffffff;
+    --done:#15925f;--watching:#1f6fd1;--plan:#a86b00;--dropped:#6b7180}
+  [data-theme=light] .r-hi{color:#b07800}
+  [data-theme=light] .btn.danger{color:#c62828}
+  [data-theme=light] .badge,[data-theme=light] .sbadge{background:#fffffff0}
+  [data-theme=light] dialog::backdrop{background:#0006}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+  button,input,select,textarea{font:inherit;color:inherit}
+  img{display:block}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 110px}
+
+  /* ---------- Sarlavha ---------- */
+  header{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  header h1{flex:1;margin:0;font-size:clamp(20px,5.5vw,26px);letter-spacing:-.01em;white-space:nowrap}
+  header h1 span{color:var(--accent)}
+  .btn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;white-space:nowrap;min-height:40px}
+  .btn:hover{border-color:var(--line2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .btn.danger{color:#ff7b7b}
+  .btn.sm{padding:6px 10px;min-height:34px;font-size:13px}
+  .menu{position:relative}
+  .menu-list{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;width:min(250px,calc(100vw - 32px));z-index:20;display:none;box-shadow:0 12px 30px #0008}
+  .menu.open .menu-list{display:block}
+  .menu-list button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
+  .menu-list button:hover{background:var(--line)}
+  .themes{display:flex;align-items:center;gap:6px;padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;flex-wrap:wrap}
+  .themes .lbl{font-size:13px;color:var(--muted);margin:0 6px 0 0;width:100%}
+  .menu-list .sw{width:28px;height:28px;padding:0;border-radius:50%;border:2px solid transparent;background:var(--c);display:block;flex:none}
+  .menu-list .sw:hover{background:var(--c);transform:scale(1.08)}
+  .menu-list .sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--panel2) inset}
+  .fab{display:none}
+
+  /* ---------- Statistika ---------- */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:left;min-width:0}
+  .stat.active{border-color:var(--accent)}
+  .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+  .stat small{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .stat .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+  .stat.static{cursor:default}
+
+  .dist{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-end;gap:4px;height:90px}
+  .dist .lbl{color:var(--muted);font-size:12px;align-self:center;margin-right:8px;width:70px;flex:none}
+  .bar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;height:100%;justify-content:flex-end;background:none;border:0;padding:0}
+  .bar i{display:block;width:100%;max-width:38px;background:var(--line);border-radius:5px 5px 2px 2px;min-height:2px}
+  .bar.active i,.bar:hover i{background:var(--accent)}
+  .bar span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  /* ---------- Asboblar paneli ---------- */
+  .toolbar{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:10px}
+  .field{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px;width:100%;min-width:0}
+  .field:focus{outline:none;border-color:var(--accent)}
+  .views{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+  .views button{background:none;border:0;border-radius:7px;padding:0 12px;cursor:pointer;color:var(--muted);font-size:13px;white-space:nowrap}
+  .views button.on{background:var(--panel2);color:var(--text)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chips:empty{display:none}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .count{color:var(--muted);font-size:13px;margin:0 0 8px 2px}
+  .count a{color:var(--accent)}
+  .hint{color:var(--muted);font-size:12px}
+
+  /* ---------- Ro‘yxat ko‘rinishi ---------- */
+  .list{display:flex;flex-direction:column;gap:6px}
+  .row{display:grid;grid-template-columns:28px 42px minmax(0,1fr) auto auto 52px;grid-template-areas:"num img t tag st rate";gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer}
+  .row:hover,.row:focus-visible{border-color:var(--line2);outline:none}
+  .row.dragover,.card.dragover .poster{outline:2px dashed var(--accent);outline-offset:2px}
+  .num{grid-area:num;color:var(--muted);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+  .thumb{grid-area:img;width:42px;height:60px;border-radius:7px;overflow:hidden}
+  .t{grid-area:t;min-width:0}
+  .t .uz{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t .orig{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t .note{color:var(--muted);font-size:12px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{grid-area:tag;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+  .status{grid-area:st;justify-self:start;font-size:12px;border-radius:999px;padding:4px 10px;font-weight:600;border:0;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center}
+  .s-done{background:color-mix(in srgb,var(--done) 16%,transparent);color:var(--done)}
+  .s-watching{background:color-mix(in srgb,var(--watching) 16%,transparent);color:var(--watching)}
+  .s-plan{background:color-mix(in srgb,var(--plan) 16%,transparent);color:var(--plan)}
+  .s-dropped{background:color-mix(in srgb,var(--dropped) 16%,transparent);color:var(--dropped)}
+  .status option{background:var(--panel2);color:var(--text)}
+  .rate{grid-area:rate;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .rate small{color:var(--muted);font-weight:400}
+  .r-hi{color:#ffd166}.r-mid{color:var(--text)}.r-lo{color:var(--muted)}
+  .empty{text-align:center;color:var(--muted);padding:40px 0}
+
+  /* Rasm yo‘q bo‘lsa — rangli o‘rinbosar */
+  .ph{width:100%;height:100%;display:grid;place-items:center;font-weight:700;color:#fff;
+      background:linear-gradient(150deg,hsl(var(--h) 55% 38%),hsl(calc(var(--h) + 40) 50% 20%));text-shadow:0 1px 3px #0006}
+  .thumb .ph{font-size:14px}
+  .cover{width:100%;height:100%;object-fit:cover}
+
+  /* ---------- Poster ko‘rinishi ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px 14px}
+  .card{cursor:pointer;min-width:0;outline:none}
+  .poster{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+  .card:hover .poster,.card:focus-visible .poster{border-color:var(--line2);transform:translateY(-2px)}
+  .poster{transition:transform .15s}
+  .poster .ph{font-size:28px}
+  .badge{position:absolute;top:6px;right:6px;background:#000c;border-radius:8px;padding:2px 7px;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+  .sbadge{position:absolute;left:6px;bottom:6px;font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;background:#000c}
+  .card .name{font-size:14px;font-weight:600;margin-top:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ---------- Qo‘shish / tahrirlash oynasi ---------- */
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:18px;padding:0;width:min(660px,94vw);max-width:none;max-height:92dvh;overflow:hidden}
+  dialog::backdrop{background:#000b}
+  .sheet{display:flex;flex-direction:column;max-height:92dvh}
+  .sheet-head{display:flex;align-items:center;gap:8px;padding:14px 16px 10px 20px}
+  .sheet-head h2{margin:0;font-size:18px;flex:1}
+  .x{width:36px;height:36px;border-radius:10px;border:0;background:none;color:var(--muted);font-size:22px;cursor:pointer}
+  .x:hover{background:var(--line);color:var(--text)}
+  .sheet-body{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 20px 18px;display:grid;grid-template-columns:160px minmax(0,1fr);gap:18px;overscroll-behavior:contain}
+  .sheet-foot{display:flex;gap:8px;align-items:center;padding:12px 20px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .sheet-foot .sp{flex:1}
+  .fields{display:grid;gap:14px;align-content:start;min-width:0}
+  .lbl{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+
+  .media{display:flex;flex-direction:column;gap:8px}
+  .drop{position:relative;aspect-ratio:2/3;border:2px dashed var(--line2);border-radius:12px;overflow:hidden;display:grid;place-items:center;cursor:pointer;background:var(--panel2);text-align:center;color:var(--muted);font-size:13px;padding:0}
+  .drop:hover,.drop.over,.drop:focus-visible{border-color:var(--accent);color:var(--text);outline:none}
+  .drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .drop .big{font-size:30px;display:block;margin-bottom:4px}
+  .drop small{display:block;font-size:11px;margin-top:4px;padding:0 8px}
+  .drop.loading::after{content:"Yuklanmoqda…";position:absolute;inset:0;display:grid;place-items:center;background:#000a;color:#fff}
+  .media-acts{display:flex;gap:6px;flex-wrap:wrap}
+  .media-acts .btn{flex:1}
+  .urlbox{display:none;gap:6px}
+  .urlbox.on{display:flex}
+
+  .opts{display:flex;flex-wrap:wrap;gap:6px}
+  .opt input{position:absolute;opacity:0;pointer-events:none}
+  .opt span{display:inline-block;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+  .opt input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .opt input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+  .opt.st input:checked+span{background:var(--c);border-color:var(--c);color:var(--bg)}
+  .stars{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+  .stars button{height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-variant-numeric:tabular-nums;padding:0}
+  .stars button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .dup{font-size:13px;color:var(--plan);margin-top:6px}
+  .dup button{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}
+  details summary{cursor:pointer;color:var(--muted);font-size:13px;list-style:none}
+  details summary::before{content:"▸ "}
+  details[open] summary::before{content:"▾ "}
+  details[open] summary{margin-bottom:10px}
+  details .fields{gap:10px}
+
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:100;max-width:90vw;text-align:center}
+  .toast.show{opacity:1}
+
+  /* ---------- Planshet ---------- */
+  @media (max-width:860px){
+    .row{grid-template-columns:42px minmax(0,1fr) auto 52px;grid-template-areas:"img t st rate"}
+    .num,.tag{display:none}
+  }
+  /* ---------- Telefon ---------- */
+  @media (max-width:640px){
+    .wrap{padding:14px 12px 110px}
+    #addBtn{display:none}
+    .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:30px;line-height:1;border:0;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 40%,transparent);z-index:30;cursor:pointer}
+    .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .stat b{font-size:19px}
+    .stat small{font-size:12px}
+    .dist{height:80px}
+    .dist .lbl{display:none}
+    .toolbar{grid-template-columns:minmax(0,1fr) auto}
+    .toolbar #q{grid-column:1/-1}
+    .row{grid-template-columns:42px minmax(0,1fr) auto;grid-template-areas:"img t rate" "img st rate";row-gap:4px;padding:8px 10px}
+    .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+    .card .name{font-size:12.5px}
+    .card .sub{display:none}
+    .poster .ph{font-size:20px}
+    .badge{font-size:11px;padding:1px 5px}
+    .sbadge{display:none}
+
+    dialog{width:100vw;max-height:94dvh;margin:auto 0 0;border-radius:18px 18px 0 0;border-bottom:0}
+    .sheet{max-height:94dvh}
+    .sheet-body{grid-template-columns:1fr;padding:4px 16px 16px;gap:14px}
+    .sheet-foot{padding-left:16px;padding-right:16px}
+    .media{flex-direction:row;align-items:stretch}
+    .drop{width:96px;flex:none}
+    .drop small{display:none}
+    .media-acts{flex-direction:column;flex:1}
+    .media-acts .btn{flex:none}
+    .stars button{height:34px;font-size:13px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mening <span>ro‘yxatim</span></h1>
+    <button class="btn primary" id="addBtn" title="Yangi qo‘shish (N)">+ Qo‘shish</button>
+    <div class="menu" id="menu">
+      <button class="btn" id="menuBtn" aria-label="Boshqa amallar">⋯</button>
+      <div class="menu-list">
+        <div class="themes" id="themes">
+          <span class="lbl">Rang</span>
+          <button class="sw" data-theme-pick="violet" style="--c:#9d8cff" aria-label="Binafsha" title="Binafsha"></button>
+          <button class="sw" data-theme-pick="ocean" style="--c:#38bdf8" aria-label="Moviy" title="Moviy"></button>
+          <button class="sw" data-theme-pick="emerald" style="--c:#34d399" aria-label="Zumrad" title="Zumrad"></button>
+          <button class="sw" data-theme-pick="amber" style="--c:#ffa94d" aria-label="Olovrang" title="Olovrang"></button>
+          <button class="sw" data-theme-pick="rose" style="--c:#ff5c8a" aria-label="Pushti" title="Pushti"></button>
+          <button class="sw" data-theme-pick="light" style="--c:linear-gradient(135deg,#fff 50%,#6d5ce8 50%)" aria-label="Yorug‘" title="Yorug‘ (oq fon)"></button>
+        </div>
+        <button data-act="copy">Matn ko‘rinishida nusxalash</button>
+        <button data-act="export">JSON faylga saqlash (zaxira, rasmlar bilan)</button>
+        <button data-act="import">JSON fayldan yuklash</button>
+        <button data-act="reset">Boshlang‘ich ro‘yxatga qaytarish</button>
+      </div>
+    </div>
+    <input type="file" id="fileIn" accept="application/json,.json" hidden>
+  </header>
+
+  <section class="stats" id="stats"></section>
+  <section class="dist" id="dist"></section>
+
+  <div class="toolbar">
+    <input type="search" class="field" id="q" placeholder="Qidirish…" title="Tezkor tugma: /" enterkeyhint="search">
+    <select class="field" id="sort" aria-label="Saralash">
+      <option value="order">Ro‘yxat tartibida</option>
+      <option value="rating">Baho: yuqoridan</option>
+      <option value="ratingAsc">Baho: pastdan</option>
+      <option value="name">Nomi (A–Z)</option>
+      <option value="recent">Oxirgi o‘zgargan</option>
+    </select>
+    <div class="views" id="views">
+      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi">☰ Ro‘yxat</button>
+      <button data-view="grid" aria-label="Poster ko‘rinishi">▦ Poster</button>
+    </div>
+  </div>
+  <div class="chips" id="types"></div>
+
+  <p class="count" id="count"></p>
+  <div id="list"></div>
+</div>
+
+<button class="fab" id="fab" aria-label="Yangi qo‘shish">+</button>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="sheet" id="form" novalidate>
+    <div class="sheet-head">
+      <h2 id="dlgTitle">Yangi qo‘shish</h2>
+      <button type="button" class="x" id="closeBtn" aria-label="Yopish">×</button>
+    </div>
+
+    <div class="sheet-body">
+      <div class="media">
+        <button type="button" class="drop" id="drop" aria-label="Rasm qo‘shish">
+          <img id="prev" alt="" hidden>
+          <span id="dropHint"><span class="big">🖼</span>Rasm qo‘shish<small>bosing, sudrab tashlang yoki Ctrl+V</small></span>
+        </button>
+        <div class="media-acts">
+          <button type="button" class="btn sm" id="urlBtn">🔗 Havola</button>
+          <button type="button" class="btn sm danger" id="rmImg" hidden>Olib tashlash</button>
+        </div>
+        <div class="urlbox" id="urlBox">
+          <input class="field" id="urlIn" type="url" placeholder="https://…rasm.jpg" inputmode="url">
+          <button type="button" class="btn sm" id="urlOk">OK</button>
+        </div>
+        <input type="file" id="imgIn" accept="image/*" hidden>
+      </div>
+
+      <div class="fields">
+        <div>
+          <label class="lbl" for="fUz">Nomi *</label>
+          <input class="field" id="fUz" name="uz" autocomplete="off" placeholder="masalan: Naruto" enterkeyhint="done">
+          <div class="dup" id="dup" hidden></div>
+        </div>
+
+        <div>
+          <span class="lbl">Holati</span>
+          <div class="opts" id="stOpts"></div>
+        </div>
+
+        <div>
+          <span class="lbl">Baho <span class="hint" id="rateHint"></span></span>
+          <div class="stars" id="stars"></div>
+        </div>
+
+        <div>
+          <span class="lbl">Turi</span>
+          <div class="opts" id="typeOpts"></div>
+        </div>
+
+        <details id="more">
+          <summary>Qo‘shimcha: asl nomi, qayerda to‘xtadim, izoh</summary>
+          <div class="fields">
+            <div>
+              <label class="lbl" for="fTitle">Asl nomi (inglizcha / yaponcha)</label>
+              <input class="field" id="fTitle" name="title" autocomplete="off">
+            </div>
+            <div>
+              <label class="lbl" for="fProg">Qayerda to‘xtadim</label>
+              <input class="field" id="fProg" name="progress" placeholder="masalan: 2-fasl, 14-qism" autocomplete="off">
+            </div>
+            <div>
+              <label class="lbl" for="fNote">Izoh</label>
+              <textarea class="field" id="fNote" name="note" rows="2"></textarea>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <div class="sheet-foot">
+      <button type="button" class="btn danger" id="delBtn">O‘chirish</button>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="againBtn" title="Saqlab, keyingisini qo‘shish">Saqlash va yana +</button>
+      <button type="submit" class="btn primary">Saqlash</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const KEY = "mening-royxatim-v1";
+const VIEW_KEY = "mening-royxatim-view";
+const LAST_KEY = "mening-royxatim-last";
+const STATUS = { done: "Ko‘rilgan", watching: "Ko‘rilmoqda", plan: "Rejada", dropped: "Tashlangan" };
+const STATUS_COLOR = { done: "var(--done)", watching: "var(--watching)", plan: "var(--plan)", dropped: "var(--dropped)" };
+const TYPES = ["Anime", "Manga", "Manhva", "Kino", "Serial"];
+
+// [asl nomi, o‘zbekcha nomi, holat, baho, izoh]
+const SEED = [
+  ["Tsukimichi: Moonlit Fantasy", "Oy boshchiligidagi boshqa dunyo", "done", 8],
+  ["Solo Leveling", "Yakka daraja oshirish", "done", 8],
+  ["Black Clover", "Qora beda", "done", 10],
+  ["The Wrong Way to Use Healing Magic", "Davolash sehridan noto‘g‘ri foydalanish", "done", 6],
+  ["Mashle: Magic and Muscles", "Mashl: Sehr va mushaklar", "done", 7],
+  ["Shangri-La Frontier", "Shangri-La chegarasi", "done", 9],
+  ["Frieren: Beyond Journey’s End", "Friren: Sayohat yakunidan so‘ng", "done", 9],
+  ["That Time I Got Reincarnated as a Slime", "Shilliq sifatida qayta tug‘ilganim haqida", "watching", 9],
+  ["Attack on Titan", "Titanlar hujumi", "done", 8],
+  ["Bleach", "Bleach", "done", 9],
+  ["Re:Zero − Starting Life in Another World", "Re:Zero", "done", 10],
+  ["Classroom of the Elite", "Elita sinfi", "watching", 7],
+  ["Mushoku Tensei: Jobless Reincarnation", "Omadsizning qayta tug‘ilishi", "done", 9],
+  ["Dr. Stone", "Doktor Stoun", "done", 9],
+  ["Devil May Cry", "Devil May Cry", "done", 7],
+  ["The Beginning After the End", "Oxiridan keyingi boshlanish", "watching", 5],
+  ["Sentenced to Be a Hero", "Mahbus qahramon 9004", "done", 6, "1-qism"],
+  ["Jujutsu Kaisen", "Jodugarlar jangi", "done", 9],
+  ["Hell’s Paradise", "Jahannam jannati", "done", 10],
+  ["One Punch Man", "Bir zarbli odam", "done", 10],
+  ["Spy x Family", "Josus x Oilasi", "done", 9],
+  ["My Hero Academia", "Mening qahramonlik akademiyam", "done", 10],
+  ["", "Zulmat farzandi", "watching", 4],
+  ["My Gift Lvl 9999 Unlimited Gacha", "Zindon tubida safdoshlarim menga xiyonat qildi. Lekin “Cheksizlik” qobiliyatim yordamida 9999-darajali ittifoqchilarni qo‘lga kiritdim…", "done", 6],
+  ["Gachiakuta", "Gachiakuta", "done", 9],
+  ["Lord of Mysteries", "Sirlar hukmdori", "done", 10],
+  ["The Apothecary Diaries", "Farmatsevt monologi", "watching", 9],
+  ["Parasyte: The Maxim", "Parazit — Hayot saboqlari", "done", 10],
+  ["Beelzebub", "Velzevul", "done", 7],
+  ["Death Note", "O‘lim daftari", "done", 8],
+  ["Fight Live", "Jonli efirda jang", "done", 7],
+  ["Arifureta: From Commonplace to World’s Strongest", "Arifureta", "done", 6],
+  ["Too Many Losing Heroines!", "Sevgida yutqizgan qizlar namuncha ko‘p", "done", 7],
+  ["", "Men eng kuchli sarguzashtchi bo‘lish uchun har doim mashq qildim", "done", 7],
+  ["", "Hayotdan diskvalifikatsiya qilingan", "done", 8],
+  ["Tower of God", "Ma’bud minorasi", "done", 9],
+  ["Suicide Squad Isekai", "O‘z joniga qasd qiluvchilar o‘zga dunyoda", "done", 7],
+  ["", "Telba detektiv", "done", 8],
+  ["The Unwanted Undead Adventurer", "O‘lmas sarguzashtchi", "done", 6],
+  ["", "Qayta tug‘ilgan aristokrat", "done", 7],
+  ["Summer Time Rendering", "Yoz vaqti", "done", 9],
+  ["91 Days", "91 kun", "done", 9],
+  ["Wind Breaker", "Shamolni bo‘ysundirish", "done", 7],
+  ["", "Past malakali ninja", "done", 8],
+  ["The Witch and the Beast", "Jodugar va maxluq", "done", 7],
+  ["DanMachi", "Zindonda qizlar bilan uchrashish yomonmi?", "done", 8],
+  ["Lookism", "Lukizm", "done", 9],
+  ["", "Tog‘amning qayta tug‘ilishi", "done", 7],
+  ["Fuuto PI", "Fuuto detektivlari", "done", 8],
+  ["Heavenly Delusion", "Jannat sarobi", "done", 9],
+  ["Mob Psycho 100", "Mob Psixo 100", "done", 9],
+  ["The Kingdoms of Ruin", "Xarobalar qirolligi", "done", 7],
+  ["Tokyo Revengers", "Tokyo qasoskorlari", "done", 9],
+  ["Berserk of Gluttony", "Ochko‘z Berserk", "done", 7],
+  ["The Rising of the Shield Hero", "Qalqon qahramoni", "done", 10],
+  ["Masamune-kun’s Revenge", "Masamune qasosi", "done", 6],
+  ["Angels of Death", "O‘lim farishtasi", "done", 8],
+  ["Dororo", "Dororo", "done", 10],
+  ["The Seven Deadly Sins", "Yetti o‘lim gunohi", "watching", 8],
+  ["Darwin’s Game", "Darvin o‘yini", "done", 7],
+  ["Seraph of the End", "So‘nggi serafim", "done", 8],
+  ["Chainsaw Man", "Arra odam", "done", 10],
+  ["", "Qahramon X", "done", 10],
+  ["", "Baholovchi", "done", 6],
+  ["Demon Lord 2099", "Iblislar hukmdori 2099", "done", 6],
+  ["Blue Lock", "Ko‘k zindon", "done", 9],
+  ["Dandadan", "Dandadan", "done", 10],
+  ["", "Qotil Seven", "plan", 8],
+  ["Zom 100: Bucket List of the Dead", "Zombi 100", "done", 7],
+];
+
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const seedItems = () => SEED.map((r, i) => ({
+  id: uid(), order: i + 1, title: r[0], uz: r[1], type: "Anime", status: r[2],
+  rating: r[3], progress: "", note: r[4] || "", updated: 0,
+}));
+
+/* ---------- Saqlash: yozuvlar localStorage’da, rasmlar IndexedDB’da ---------- */
+function store(v) {
+  try { localStorage.setItem(KEY, JSON.stringify(v)); }
+  catch (e) { if (!store.warned) { store.warned = true; alert("Brauzer ma’lumotni saqlashga ruxsat bermadi — o‘zgarishlar sahifa yopilganda yo‘qoladi. JSON zaxira oling."); } }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) return v; }
+  } catch (e) {}
+  const s = seedItems(); store(s); return s;
+}
+const DB = {
+  p: null,
+  open() {
+    return this.p ??= new Promise((res, rej) => {
+      const r = indexedDB.open("mening-royxatim", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("img");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async tx(mode, fn) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const t = db.transaction("img", mode); const out = fn(t.objectStore("img"));
+      t.oncomplete = () => res(out); t.onerror = t.onabort = () => rej(t.error);
+    });
+  },
+  put(k, v) { return this.tx("readwrite", (s) => { s.put(v, k); }); },
+  del(k) { return this.tx("readwrite", (s) => { s.delete(k); }); },
+  clear() { return this.tx("readwrite", (s) => { s.clear(); }); },
+  all() {
+    return this.tx("readonly", (s) => {
+      const m = new Map();
+      s.openCursor().onsuccess = (e) => { const c = e.target.result; if (c) { m.set(c.key, c.value); c.continue(); } };
+      return m;
+    });
+  },
+};
+const IMG = new Map();
+function setImage(id, src) {
+  if (src) IMG.set(id, src); else IMG.delete(id);
+  (src ? DB.put(id, src) : DB.del(id)).catch(() => toast("Rasmni saqlab bo‘lmadi (brauzer xotirasi)"));
+}
+
+let items = load();
+const state = { q: "", type: "all", status: "all", rating: 0, sort: "order", view: localStorage.getItem(VIEW_KEY) || "list" };
+function save() { store(items); render(); }
+
+/* ---------- Yordamchilar ---------- */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s || "").toLowerCase().replace(/[‘’ʻʼ`']/g, "'").replace(/\s+/g, " ").trim();
+const rClass = (r) => (r >= 9 ? "r-hi" : r >= 7 ? "r-mid" : "r-lo");
+const hue = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+const initials = (s) => String(s || "?").replace(/[^\p{L}\p{N} ]/gu, "").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+const cover = (it) => IMG.has(it.id)
+  ? `<img class="cover" src="${esc(IMG.get(it.id))}" alt="" loading="lazy">`
+  : `<div class="ph" style="--h:${hue(it.uz || it.title)}">${esc(initials(it.uz || it.title))}</div>`;
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 1900);
+}
+
+/* ---------- Ko‘rsatish ---------- */
+function filtered() {
+  const q = norm(state.q);
+  const out = items.filter((it) =>
+    (state.type === "all" || it.type === state.type) &&
+    (state.status === "all" || it.status === state.status) &&
+    (!state.rating || it.rating === state.rating) &&
+    (!q || norm(it.uz + " " + it.title + " " + it.note + " " + it.progress).includes(q)));
+  const by = {
+    order: (a, b) => a.order - b.order,
+    rating: (a, b) => b.rating - a.rating || a.order - b.order,
+    ratingAsc: (a, b) => a.rating - b.rating || a.order - b.order,
+    name: (a, b) => (a.uz || a.title).localeCompare(b.uz || b.title, "uz"),
+    recent: (a, b) => b.updated - a.updated || b.order - a.order,
+  }[state.sort];
+  return out.sort(by);
+}
+
+function renderStats() {
+  const pool = items.filter((it) => state.type === "all" || it.type === state.type);
+  const rated = pool.filter((it) => it.rating > 0 && it.status !== "plan");
+  const avg = rated.length ? (rated.reduce((s, it) => s + it.rating, 0) / rated.length).toFixed(1) : "—";
+  const n = (st) => pool.filter((it) => it.status === st).length;
+  const tiles = [
+    ["all", "Jami", pool.length, "var(--accent)"],
+    ["done", STATUS.done, n("done"), STATUS_COLOR.done],
+    ["watching", STATUS.watching, n("watching"), STATUS_COLOR.watching],
+    ["plan", STATUS.plan, n("plan"), STATUS_COLOR.plan],
+  ];
+  if (n("dropped")) tiles.push(["dropped", STATUS.dropped, n("dropped"), STATUS_COLOR.dropped]);
+  $("#stats").innerHTML = tiles.map(([k, l, v, c]) =>
+    `<button class="stat ${state.status === k ? "active" : ""}" data-st="${k}"><b>${v}</b><small><span class="dot" style="background:${c}"></span>${l}</small></button>`
+  ).join("") + `<div class="stat static"><b>${avg}</b><small>O‘rtacha baho</small></div>`;
+
+  const counts = Array.from({ length: 10 }, (_, i) => pool.filter((it) => it.rating === i + 1).length);
+  const max = Math.max(1, ...counts);
+  $("#dist").innerHTML = `<div class="lbl">Baholar taqsimoti</div>` + counts.map((c, i) =>
+    `<button class="bar ${state.rating === i + 1 ? "active" : ""}" data-r="${i + 1}" aria-label="${i + 1}/10 — ${c} ta"><span>${c || ""}</span><i style="height:${(c / max) * 46}px"></i><span>${i + 1}</span></button>`
+  ).join("");
+}
+
+function renderTypes() {
+  const present = TYPES.filter((t) => items.some((it) => it.type === t));
+  if (present.length < 2) { $("#types").innerHTML = ""; if (state.type !== "all" && !present.includes(state.type)) state.type = "all"; return; }
+  $("#types").innerHTML = ["all", ...present].map((t) =>
+    `<button class="chip ${state.type === t ? "active" : ""}" data-type="${t}">${t === "all" ? "Hammasi" : t} · ${t === "all" ? items.length : items.filter((it) => it.type === t).length}</button>`
+  ).join("");
+}
+
+function statusSelect(it) {
+  return `<select class="status s-${it.status}" data-status aria-label="Holati">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === it.status ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+}
+const rateHtml = (it) => (it.rating ? `${it.rating}<small>/10</small>` : "<small>—</small>");
+
+function renderList() {
+  const rows = filtered();
+  const filters = [];
+  if (state.status !== "all") filters.push(STATUS[state.status]);
+  if (state.rating) filters.push(state.rating + "/10");
+  if (state.q) filters.push("“" + state.q + "”");
+  $("#count").innerHTML = `${rows.length} ta` + (filters.length ? ` · ${esc(filters.join(", "))} · <a href="#" id="clearF">tozalash</a>` : "");
+  document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
+
+  const box = $("#list");
+  if (!rows.length) { box.className = ""; box.innerHTML = `<div class="empty">Hech narsa topilmadi.</div>`; return; }
+
+  if (state.view === "grid") {
+    box.className = "grid";
+    box.innerHTML = rows.map((it) => `
+      <div class="card" data-id="${it.id}" tabindex="0" role="button" aria-label="${esc(it.uz)}">
+        <div class="poster">
+          ${cover(it)}
+          ${it.rating ? `<span class="badge ${rClass(it.rating)}">${it.rating}</span>` : ""}
+          <span class="sbadge" style="color:${STATUS_COLOR[it.status]}">${STATUS[it.status]}</span>
+        </div>
+        <div class="name">${esc(it.uz || it.title)}</div>
+        <div class="sub">${esc(it.progress || (it.title !== it.uz ? it.title : "") || it.type)}</div>
+      </div>`).join("");
+    return;
+  }
+
+  box.className = "list";
+  box.innerHTML = rows.map((it) => {
+    const showOrig = it.title && norm(it.title) !== norm(it.uz);
+    const sub = [showOrig ? esc(it.title) : "", it.progress ? "⏸ " + esc(it.progress) : ""].filter(Boolean).join(" · ");
+    return `<div class="row" data-id="${it.id}" tabindex="0" role="button">
+      <div class="num">${it.order}</div>
+      <div class="thumb">${cover(it)}</div>
+      <div class="t">
+        <div class="uz" title="${esc(it.uz)}">${esc(it.uz || it.title)}</div>
+        ${sub ? `<div class="orig">${sub}</div>` : ""}
+        ${it.note ? `<div class="note">${esc(it.note)}</div>` : ""}
+      </div>
+      <span class="tag">${esc(it.type)}</span>
+      ${statusSelect(it)}
+      <div class="rate ${rClass(it.rating)}">${rateHtml(it)}</div>
+    </div>`;
+  }).join("");
+}
+
+function render() { renderStats(); renderTypes(); renderList(); }
+
+/* ---------- Ro‘yxatdagi hodisalar ---------- */
+$("#q").addEventListener("input", (e) => { state.q = e.target.value; renderList(); });
+$("#sort").addEventListener("change", (e) => { state.sort = e.target.value; renderList(); });
+$("#views").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-view]"); if (!b) return;
+  state.view = b.dataset.view; localStorage.setItem(VIEW_KEY, state.view); renderList();
+});
+$("#stats").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-st]"); if (!b) return;
+  state.status = b.dataset.st; render();
+});
+$("#dist").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-r]"); if (!b) return;
+  const r = +b.dataset.r; state.rating = state.rating === r ? 0 : r; render();
+});
+$("#types").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-type]"); if (!b) return;
+  state.type = b.dataset.type; render();
+});
+$("#count").addEventListener("click", (e) => {
+  if (e.target.id !== "clearF") return;
+  e.preventDefault(); state.status = "all"; state.rating = 0; state.q = ""; $("#q").value = ""; render();
+});
+const findItem = (el) => items.find((x) => x.id === el.closest("[data-id]")?.dataset.id);
+$("#list").addEventListener("change", (e) => {
+  if (!e.target.matches("[data-status]")) return;
+  const it = findItem(e.target);
+  it.status = e.target.value; it.updated = Date.now(); save(); toast(`“${it.uz}” → ${STATUS[it.status]}`);
+});
+$("#list").addEventListener("click", (e) => {
+  if (e.target.closest("select")) return;
+  const it = e.target.closest("[data-id]") && findItem(e.target);
+  if (it) openDialog(it);
+});
+$("#list").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.target.closest("select")) return;
+  const it = e.target.closest("[data-id]") && findItem(e.target);
+  if (it) openDialog(it);
+});
+// Rasmni to‘g‘ridan-to‘g‘ri qator yoki poster ustiga sudrab tashlash
+let overEl = null;
+$("#list").addEventListener("dragover", (e) => {
+  const el = e.target.closest("[data-id]"); if (!el || !e.dataTransfer.types.includes("Files")) return;
+  e.preventDefault(); if (overEl !== el) { overEl?.classList.remove("dragover"); overEl = el; el.classList.add("dragover"); }
+});
+$("#list").addEventListener("dragleave", (e) => { if (overEl && !overEl.contains(e.relatedTarget)) { overEl.classList.remove("dragover"); overEl = null; } });
+$("#list").addEventListener("drop", async (e) => {
+  const el = e.target.closest("[data-id]"); overEl?.classList.remove("dragover"); overEl = null;
+  const f = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+  if (!el || !f) return; e.preventDefault();
+  try { const it = findItem(el); setImage(it.id, await fileToThumb(f)); it.updated = Date.now(); save(); toast(`Rasm qo‘shildi: ${it.uz}`); }
+  catch { toast("Bu rasmni o‘qib bo‘lmadi"); }
+});
+
+/* ---------- Rasmni kichraytirish ---------- */
+function loadImg(src, cors) {
+  return new Promise((res, rej) => {
+    const i = new Image(); if (cors) i.crossOrigin = "anonymous";
+    i.onload = () => res(i); i.onerror = () => rej(new Error("load")); i.src = src;
+  });
+}
+function compress(img) {
+  const s = Math.min(1, 360 / img.naturalWidth, 540 / img.naturalHeight);
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+  const g = c.getContext("2d"); g.fillStyle = "#000"; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.8);
+}
+async function fileToThumb(file) {
+  const u = URL.createObjectURL(file);
+  try { return compress(await loadImg(u)); } finally { URL.revokeObjectURL(u); }
+}
+async function urlToThumb(u) {
+  try { return compress(await loadImg(u, true)); }
+  catch { await loadImg(u); return u; } // sayt nusxa olishga ruxsat bermasa — havolaning o‘zini saqlaymiz
+}
+
+/* ---------- Qo‘shish / tahrirlash oynasi ---------- */
+const dlg = $("#dlg"), form = $("#form");
+$("#stOpts").innerHTML = Object.entries(STATUS).map(([k, v]) =>
+  `<label class="opt st" style="--c:${STATUS_COLOR[k]}"><input type="radio" name="status" value="${k}"><span>${v}</span></label>`).join("");
+$("#typeOpts").innerHTML = TYPES.map((t) =>
+  `<label class="opt"><input type="radio" name="type" value="${t}"><span>${t}</span></label>`).join("");
+
+let editing = null, curRating = 0, curImg = null;
+const RATE_WORDS = ["", "dahshat", "juda yomon", "yomon", "zaif", "o‘rtacha", "chidasa bo‘ladi", "yaxshi", "juda yaxshi", "a’lo", "eng zo‘ri!"];
+
+function drawStars() {
+  $("#stars").innerHTML = Array.from({ length: 10 }, (_, i) =>
+    `<button type="button" class="${i + 1 <= curRating ? "on" : ""}" data-v="${i + 1}" aria-label="${i + 1} ball">${i + 1}</button>`).join("");
+  $("#rateHint").textContent = curRating ? `— ${curRating}/10, ${RATE_WORDS[curRating]}` : "";
+}
+$("#stars").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-v]"); if (!b) return;
+  curRating = curRating === +b.dataset.v ? 0 : +b.dataset.v; drawStars();
+});
+
+function drawImg() {
+  const p = $("#prev");
+  p.hidden = !curImg; if (curImg) p.src = curImg; else p.removeAttribute("src");
+  $("#dropHint").hidden = !!curImg;
+  $("#rmImg").hidden = !curImg;
+}
+async function takeFile(f) {
+  if (!f || !f.type.startsWith("image/")) return toast("Bu rasm fayli emas");
+  $("#drop").classList.add("loading");
+  try { curImg = await fileToThumb(f); drawImg(); }
+  catch { toast("Bu rasmni o‘qib bo‘lmadi"); }
+  finally { $("#drop").classList.remove("loading"); }
+}
+$("#drop").addEventListener("click", () => $("#imgIn").click());
+$("#imgIn").addEventListener("change", (e) => { takeFile(e.target.files[0]); e.target.value = ""; });
+$("#drop").addEventListener("dragover", (e) => { e.preventDefault(); $("#drop").classList.add("over"); });
+$("#drop").addEventListener("dragleave", () => $("#drop").classList.remove("over"));
+$("#drop").addEventListener("drop", (e) => { e.preventDefault(); $("#drop").classList.remove("over"); takeFile(e.dataTransfer.files[0]); });
+dlg.addEventListener("dragover", (e) => e.preventDefault());
+dlg.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) takeFile(e.dataTransfer.files[0]); });
+document.addEventListener("paste", (e) => {
+  if (!dlg.open) return;
+  const f = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith("image/"));
+  if (f) { e.preventDefault(); takeFile(f); }
+});
+$("#rmImg").addEventListener("click", () => { curImg = null; drawImg(); });
+$("#urlBtn").addEventListener("click", () => { $("#urlBox").classList.toggle("on"); $("#urlIn").focus(); });
+async function takeUrl() {
+  const u = $("#urlIn").value.trim(); if (!u) return;
+  if (!/^https?:\/\//i.test(u)) return toast("Havola http:// yoki https:// bilan boshlanishi kerak");
+  $("#drop").classList.add("loading");
+  try { curImg = await urlToThumb(u); drawImg(); $("#urlIn").value = ""; $("#urlBox").classList.remove("on"); }
+  catch { toast("Bu havoladan rasm ochilmadi"); }
+  finally { $("#drop").classList.remove("loading"); }
+}
+$("#urlOk").addEventListener("click", takeUrl);
+$("#urlIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); takeUrl(); } });
+
+// Takroriy nomni ogohlantirish
+$("#fUz").addEventListener("input", () => {
+  const q = norm(form.uz.value), d = $("#dup");
+  const hits = q.length < 3 ? [] : items.filter((x) => x !== editing && (norm(x.uz) === q || norm(x.title) === q || (q.length >= 4 && (norm(x.uz).includes(q) || norm(x.title).includes(q))))).slice(0, 2);
+  d.hidden = !hits.length;
+  d.innerHTML = hits.length ? "Ro‘yxatda bor: " + hits.map((x) => `<button type="button" data-open="${x.id}">${esc(x.uz)}</button> (${STATUS[x.status]})`).join(", ") : "";
+});
+$("#dup").addEventListener("click", (e) => {
+  const id = e.target.dataset.open; if (id) openDialog(items.find((x) => x.id === id));
+});
+
+function openDialog(it) {
+  editing = it || null;
+  const last = JSON.parse(localStorage.getItem(LAST_KEY) || "{}");
+  $("#dlgTitle").textContent = it ? "Tahrirlash" : "Yangi qo‘shish";
+  $("#delBtn").hidden = !it;
+  $("#againBtn").hidden = !!it;
+  form.uz.value = it?.uz || ""; form.title.value = it?.title || "";
+  form.type.value = it?.type || (state.type !== "all" ? state.type : last.type || "Anime");
+  form.status.value = it?.status || last.status || "done";
+  form.progress.value = it?.progress || ""; form.note.value = it?.note || "";
+  $("#more").open = !!(it && (it.progress || it.note || (it.title && norm(it.title) !== norm(it.uz))));
+  curRating = it?.rating || 0; drawStars();
+  curImg = it ? IMG.get(it.id) || null : null; drawImg();
+  $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
+  if (!dlg.open) dlg.showModal();
+  $(".sheet-body").scrollTop = 0;
+  if (!it || matchMedia("(min-width:641px)").matches) form.uz.focus();
+}
+const closeDialog = () => dlg.close();
+$("#addBtn").addEventListener("click", () => openDialog());
+$("#fab").addEventListener("click", () => openDialog());
+$("#closeBtn").addEventListener("click", closeDialog);
+dlg.addEventListener("click", (e) => { if (e.target === dlg) closeDialog(); }); // fonni bossa yopiladi
+
+function submit(again) {
+  const data = {
+    uz: form.uz.value.trim(), title: form.title.value.trim(), type: form.type.value || "Anime",
+    status: form.status.value || "done", rating: curRating, progress: form.progress.value.trim(),
+    note: form.note.value.trim(), updated: Date.now(),
+  };
+  if (!data.uz) { form.uz.focus(); return toast("Nomini yozing"); }
+  localStorage.setItem(LAST_KEY, JSON.stringify({ type: data.type, status: data.status }));
+  let it = editing;
+  if (it) Object.assign(it, data);
+  else { it = { id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, ...data }; items.push(it); }
+  if ((IMG.get(it.id) || null) !== curImg) setImage(it.id, curImg);
+  save();
+  toast(editing ? "Saqlandi" : `Qo‘shildi: ${data.uz}`);
+  if (again) openDialog(); else closeDialog();
+}
+form.addEventListener("submit", (e) => { e.preventDefault(); submit(false); });
+$("#againBtn").addEventListener("click", () => submit(true));
+$("#delBtn").addEventListener("click", () => {
+  if (!editing || !confirm(`“${editing.uz}” ro‘yxatdan o‘chirilsinmi?`)) return;
+  const gone = editing.order;
+  setImage(editing.id, null);
+  items = items.filter((x) => x !== editing);
+  items.forEach((x) => { if (x.order > gone) x.order--; });
+  closeDialog(); save(); toast("O‘chirildi");
+});
+
+/* ---------- Klaviatura: N — qo‘shish, / — qidirish ---------- */
+document.addEventListener("keydown", (e) => {
+  if (dlg.open || e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if (e.key === "n" || e.key === "N") { e.preventDefault(); openDialog(); }
+  if (e.key === "/") { e.preventDefault(); $("#q").focus(); }
+});
+
+/* ---------- Rang mavzusi ---------- */
+const THEME_KEY = "mening-royxatim-theme";
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem(THEME_KEY, t);
+  document.querySelectorAll("[data-theme-pick]").forEach((b) => b.classList.toggle("on", b.dataset.themePick === t));
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).getPropertyValue("--bg").trim();
+}
+$("#themes").addEventListener("click", (e) => {
+  e.stopPropagation(); // menyu ochiq qolsin — ranglarni solishtirib ko‘rish uchun
+  const b = e.target.closest("[data-theme-pick]"); if (b) applyTheme(b.dataset.themePick);
+});
+applyTheme(document.documentElement.dataset.theme);
+
+/* ---------- Menyu: nusxa, eksport, import ---------- */
+$("#menuBtn").addEventListener("click", (e) => { e.stopPropagation(); $("#menu").classList.toggle("open"); });
+document.addEventListener("click", () => $("#menu").classList.remove("open"));
+$("#menu .menu-list").addEventListener("click", async (e) => {
+  const act = e.target.dataset.act; if (!act) return;
+  if (act === "copy") {
+    const txt = [...items].sort((a, b) => a.order - b.order)
+      .map((it, i) => `${i + 1}. ${it.title || it.uz} | ${it.uz} | ${STATUS[it.status]} | ${it.rating ? it.rating + "/10" : "—"}`).join("\n");
+    try { await navigator.clipboard.writeText(txt); toast("Ro‘yxat nusxalandi"); }
+    catch { prompt("Nusxa oling:", txt); }
+  }
+  if (act === "export") {
+    const data = items.map((it) => (IMG.has(it.id) ? { ...it, img: IMG.get(it.id) } : it));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `mening-royxatim-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("Fayl saqlandi");
+  }
+  if (act === "import") $("#fileIn").click();
+  if (act === "reset" && confirm("Hozirgi ro‘yxat va rasmlar o‘chib, boshlang‘ich 69 ta yozuv qaytariladi. Davom etilsinmi? (Avval JSON zaxira olishni unutmang)")) {
+    items = seedItems(); IMG.clear(); DB.clear().catch(() => {}); save(); toast("Boshlang‘ich ro‘yxat tiklandi");
+  }
+});
+$("#fileIn").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!Array.isArray(data) || !data.every((x) => x && typeof x.uz === "string" && STATUS[x.status])) throw 0;
+    if (!confirm(`${data.length} ta yozuv yuklanadi va hozirgi ro‘yxat almashtiriladi. Davom etilsinmi?`)) return;
+    IMG.clear(); await DB.clear().catch(() => {});
+    items = data.map((x, i) => {
+      const it = {
+        id: x.id || uid(), order: x.order || i + 1, title: x.title || "", uz: x.uz,
+        type: TYPES.includes(x.type) ? x.type : "Anime", status: x.status, rating: +x.rating || 0,
+        progress: x.progress || "", note: x.note || "", updated: x.updated || 0,
+      };
+      if (typeof x.img === "string" && /^(data:image\/|https?:\/\/)/.test(x.img)) setImage(it.id, x.img);
+      return it;
+    });
+    save(); toast("Yuklandi");
+  } catch { alert("Bu fayl mos emas — shu ilovadan saqlangan JSON faylni tanlang."); }
+});
+
+/* ---------- Ishga tushirish ---------- */
+$("#sort").value = state.sort;
+render();
+DB.all().then((m) => { m.forEach((v, k) => IMG.set(k, v)); if (m.size) renderList(); })
+  .catch(() => toast("Rasmlar xotirasi ochilmadi — rasmlar saqlanmaydi"));
+</script>
+</body>
+</html>
