@@ -178,6 +178,7 @@
   .dup{font-size:13px;color:var(--plan);margin-top:6px}
   .find{margin-top:8px;font-size:13px;min-height:44px}
   #sugg{display:grid;gap:6px;margin-top:8px}
+  #sugg[hidden]{display:none}
   .sug{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 10px;text-align:left;font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:10px;cursor:pointer}
   .sug:hover{border-color:var(--line2)}
   .sug img{width:40px;height:60px;flex:none;object-fit:cover;border-radius:6px;background:var(--panel)}
@@ -1322,8 +1323,11 @@ function shareCanvas(canvas, fileName, title) {
   if (!host) { host = document.createElement("div"); host.className = "share-out"; $("#pageBody").append(host); }
   host.innerHTML = '<div class="share-load">Rasm tayyorlanmoqda…</div>';
   dropPageUrl();
+  const fail = () => { if (host.isConnected) host.innerHTML = ""; toast("Rasmni tayyorlab bo‘lmadi"); };
   // toBlob brauzerda kechikishi mumkin (soniyalar), shuning uchun toDataURL → Blob
-  fetch(canvas.toDataURL("image/png")).then((r) => r.blob()).then((blob) => {
+  let url;
+  try { url = canvas.toDataURL("image/png"); } catch { fail(); return; } // masalan, canvas bulg‘angan
+  fetch(url).then((r) => r.blob()).then((blob) => {
     if (!host.isConnected) return;
     dropPageUrl(); pageUrl = URL.createObjectURL(blob);
     const file = new File([blob], fileName, { type: "image/png" });
@@ -1338,7 +1342,7 @@ function shareCanvas(canvas, fileName, title) {
     const a = document.createElement("a"); a.className = "btn" + (btns.children.length ? "" : " primary");
     a.href = pageUrl; a.download = fileName; a.textContent = "Yuklab olish"; a.setAttribute("role", "button");
     btns.append(a);
-  }).catch(() => toast("Rasm tayyorlab bo‘lmadi"));
+  }).catch(fail);
 }
 
 /* Poster canvas’ga: faqat oldindan yuklangan data: rasm chiziladi (http rasm canvas’ni bulg‘aydi), aks holda gradient + bosh harflar */
@@ -1546,12 +1550,13 @@ pageDlg.addEventListener("close", () => { if (items.some((it) => it.tier)) rende
 
 /* ---------- Do‘st bilan solishtirish ---------- */
 const keysOf = (it) => [...new Set([norm(it.title), norm(it.uz)].filter(Boolean))];
+const typedKeys = (it) => keysOf(it).map((k) => it.type + "|" + k); // bir xil nomli Anime va Manga — boshqa-boshqa
 function compareLists(mine, friend) {
   const seen = (it) => it.status !== "plan";
   const left = mine.filter(seen), used = new Set(), both = [], onlyFriend = [];
   for (const fr of friend.filter(seen)) {
-    const fk = keysOf(fr);
-    const me = left.find((m) => !used.has(m) && keysOf(m).some((k) => fk.includes(k)));
+    const fk = typedKeys(fr);
+    const me = left.find((m) => !used.has(m) && typedKeys(m).some((k) => fk.includes(k)));
     if (me) { used.add(me); both.push({ me, fr }); } else onlyFriend.push(fr);
   }
   const rated = both.filter((p) => p.me.rating > 0 && p.fr.rating > 0);
@@ -1561,8 +1566,8 @@ function compareLists(mine, friend) {
 }
 function addFriendPlan(fr, btn) {
   if (btn.getAttribute("aria-disabled") === "true") return;
-  const fk = keysOf(fr);
-  if (items.some((it) => keysOf(it).some((k) => fk.includes(k)))) { toast("Ro‘yxatingda bor"); return; }
+  const fk = typedKeys(fr);
+  if (items.some((it) => typedKeys(it).some((k) => fk.includes(k)))) { toast("Ro‘yxatingda bor"); return; }
   const it = {
     id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, title: fr.title, uz: fr.uz, type: fr.type,
     status: "plan", rating: 0, progress: "", note: "", updated: Date.now(),
@@ -1640,7 +1645,7 @@ function mergeBackup(mine, incoming) {
   const out = mine.map((m) => ({ ...m }));
   const images = new Map();
   const byId = new Map(out.map((m) => [m.id, m]));
-  const tk = (it) => keysOf(it).map((k) => it.type + "|" + k);
+  const tk = typedKeys;
   const byKey = new Map();
   out.forEach((m) => tk(m).forEach((k) => { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(m); }));
   const used = new Set();

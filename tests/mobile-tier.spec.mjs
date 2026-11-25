@@ -71,3 +71,11 @@ test('o‘rtacha ro‘yxat: 120px minimum hisobga olinadi', async ({ page }) => 
   const info = await cardInfo(page, [...mk(60, 10, 0), ...mk(40, 9, 100), ...mk(2, 7, 200), ...mk(2, 5, 300)]);
   within(info);
 });
+
+test('rasm tayyorlashda xato: yuklanmoqda yozuvi qolmaydi, toast chiqadi', async ({ page }) => {
+  await fresh(page); await page.click('#menuBtn'); await page.click('[data-act=tier]');
+  await page.evaluate(() => { HTMLCanvasElement.prototype.toDataURL = () => { throw new Error('SecurityError'); }; });
+  await page.locator('#page').getByRole('button', { name: 'Rasm qilish' }).click();
+  await expect(page.locator('#toast')).toContainText('Rasmni tayyorlab bo‘lmadi');
+  await expect(page.locator('#page .share-load')).toHaveCount(0);
+});

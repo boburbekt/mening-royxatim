@@ -68,3 +68,8 @@ test('manga taklifida "bob" yoziladi', async ({ page }) => {
   await expect(page.locator('#sugg .sug small')).toContainText('201 bob');
   await expect(page.locator('#sugg .sug small')).not.toContainText('qism');
 });
+
+test('#sugg yashirin bo‘lsa joy egallamaydi', async ({ page }) => {
+  await fresh(page); await page.click('#fab');
+  expect(await page.evaluate(() => [$('#sugg').hidden, getComputedStyle($('#sugg')).display])).toEqual([true, 'none']);
+});

@@ -89,3 +89,17 @@ test('zaxirani ulashish menyusi: canShare bo‘lmasa yashirin', async ({ page })
   expect(await page.evaluate(() => window.__shared.title)).toBe('Mening ro‘yxatim — zaxira');
   await expect(page.locator('#toast')).not.toHaveClass(/show/);
 });
+
+test('solishtirish turi bo‘yicha: boshqa turdagi bir xil nom mos kelmaydi va rejaga qo‘shiladi', async ({ page }) => {
+  await fresh(page);
+  await page.evaluate(() => { items.push({ id: 'my-naruto', order: 99, title: '', uz: 'Naruto', type: 'Anime', status: 'done', rating: 8, progress: '', note: '', updated: 0 }); save(); });
+  const mangaNaruto = { ...friend[1], id: 'fm', type: 'Manga', rating: 7 };
+  const r = await page.evaluate((f) => { const c = compareLists(items, f); return { both: c.both.length, of: c.onlyFriend.map((x) => x.type) }; }, [mangaNaruto]);
+  expect(r).toEqual({ both: 0, of: ['Manga'] });
+  await page.click('#menuBtn'); await page.click('[data-act=compare]');
+  await upload(page, [mangaNaruto]);
+  await page.locator('#page').getByRole('button', { name: /U ko‘rgan/ }).click();
+  await page.locator('#page').getByRole('button', { name: '+ Rejaga' }).click();
+  await expect(page.locator('#toast')).toContainText('Rejaga qo‘shildi');
+  expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).at(-1))).toMatchObject({ uz: 'Naruto', type: 'Manga', status: 'plan' });
+});
