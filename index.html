@@ -108,6 +108,8 @@
   .tag{grid-area:tag;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
   .meta{display:contents}
   .go{display:none}
+  .inline{display:flex;gap:8px}
+  .plus1{min-width:44px;min-height:44px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer}
   .status{grid-area:st;justify-self:start;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center}
   .status span{display:block;font-size:12px;border-radius:999px;padding:4px 10px;font-weight:600}
   .status:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:999px}
@@ -252,6 +254,7 @@
     .meta .status{min-height:44px;display:flex;align-items:center}
     .meta .rate{text-align:left}
     .go{grid-area:go;display:grid;place-items:center;color:var(--muted)}
+    .row:has(.plus1){grid-template-columns:42px minmax(0,1fr) auto}
     .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
     .card .sub{display:none}
     .poster .ph{font-size:20px}
@@ -411,7 +414,7 @@
             </div>
             <div>
               <label class="lbl" for="fProg">Qayerda to‘xtadim</label>
-              <input class="field" id="fProg" name="progress" placeholder="masalan: 2-fasl, 14-qism" autocomplete="off">
+              <div class="inline"><input class="field" id="fProg" name="progress" placeholder="masalan: 2-fasl, 14-qism" autocomplete="off"><button type="button" class="btn" id="progPlus" aria-label="Keyingi qism">+1</button></div>
             </div>
             <div>
               <label class="lbl" for="fTotal">Jami qismlar (bob)</label>
@@ -564,9 +567,18 @@ function store(v) {
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) return v.map(normalizeItem); }
+    if (raw) {
+      const v = JSON.parse(raw);
+      if (Array.isArray(v)) return v.filter((x) => x && typeof x === "object" && !Array.isArray(x)).map(normalizeItem);
+    }
   } catch (e) {}
-  const s = seedItems(); store(s); return s;
+  // Saqlangan ma’lumot bor, lekin o‘qib bo‘lmadi: ustidan yozmaymiz, nusxasini saqlab qo‘yamiz
+  let had = null;
+  try { had = localStorage.getItem(KEY); } catch {}
+  const s = seedItems();
+  if (had) { try { localStorage.setItem(KEY + "-buzuq", had); } catch {} }
+  else store(s);
+  return s;
 }
 const DB = {
   p: null,
@@ -832,7 +844,9 @@ function renderList() {
         ${statusButton(it)}
         <div class="rate ${rClass(it.rating)}">${rateHtml(it)}</div>
       </div>
-      <span class="go" aria-hidden="true">${ICON.chevron}</span>
+      ${it.status === "watching"
+        ? `<span class="go"><button type="button" class="plus1" data-plus aria-label="Keyingi qism: ${esc(it.uz || it.title)}">+1</button></span>`
+        : `<span class="go" aria-hidden="true">${ICON.chevron}</span>`}
     </div>`;
   }).join("");
 }
@@ -884,15 +898,47 @@ async function pickStatus(it) {
   if (v === it.status) return;
   setStatus(it, v); save(); toast(`“${it.uz}” → ${STATUS[v]}`);
 }
+/* ---------- "+1 qism" ---------- */
+function bumpProgress(text) {
+  text = String(text ?? "");
+  if (!text.trim()) return "1-qism";
+  const f = text.match(/(\d+)(\s*\/\s*\d+)/);
+  if (f) return text.slice(0, f.index) + (+f[1] + 1) + f[2] + text.slice(f.index + f[0].length);
+  const all = [...text.matchAll(/\d+/g)];
+  if (!all.length) return `${text}, 1-qism`;
+  const m = all[all.length - 1];
+  return text.slice(0, m.index) + (+m[0] + 1) + text.slice(m.index + m[0].length);
+}
+function progressNumber(text) {
+  text = String(text ?? "");
+  const f = text.match(/(\d+)\s*\/\s*\d+/);
+  if (f) return +f[1];
+  const all = text.match(/\d+/g);
+  return all ? +all[all.length - 1] : 0;
+}
+async function plusOne(it) {
+  const old = it.progress, oldUpdated = it.updated;
+  it.progress = bumpProgress(old); it.updated = Date.now(); save();
+  const name = it.uz || it.title;
+  toast(`“${name}”: ${it.progress}`, { action: { label: "Bekor qilish", run: () => { it.progress = old; it.updated = oldUpdated; save(); } } });
+  if (it.total > 0 && progressNumber(it.progress) >= it.total) {
+    const v = await askSheet({ title: "Oxirgi qism!", text: "Ko‘rildi deb belgilaymi?", options: [{ value: "done", label: "Ha, Ko‘rildi", tone: "primary" }] });
+    if (v !== "done") return;
+    setStatus(it, "done"); save();
+    toast(`“${name}” → ${STATUS.done}`, { ms: 5000, action: { label: "Baho qo‘yish", run: () => openDialog(it) } });
+  }
+}
 $("#list").addEventListener("click", (e) => {
   if (e.target.closest(".clear")) { clearFilters(); return; }
+  const pb = e.target.closest("[data-plus]");
+  if (pb) { e.stopPropagation(); const it = findItem(pb); if (it) plusOne(it); return; }
   const sb = e.target.closest("[data-status]");
   if (sb) { pickStatus(findItem(sb)); return; }
   const it = e.target.closest("[data-id]") && findItem(e.target);
   if (it) openDialog(it);
 });
 $("#list").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" || e.target.closest("[data-status]")) return;
+  if (e.key !== "Enter" || e.target.closest("[data-status], [data-plus]")) return;
   const it = e.target.closest("[data-id]") && findItem(e.target);
   if (it) openDialog(it);
 });
@@ -1010,6 +1056,7 @@ function setSaveDisabled() {
   const off = !form.uz.value.trim();
   for (const b of [saveBtn(), $("#againBtn")]) { if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled"); }
 }
+$("#progPlus").addEventListener("click", () => { form.progress.value = bumpProgress(form.progress.value); });
 function openDialog(it) {
   editing = it || null;
   const last = JSON.parse(localStorage.getItem(LAST_KEY) || "{}");
