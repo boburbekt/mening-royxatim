@@ -41,3 +41,8 @@ export async function smallTargets(page, min = 44) {
 export async function overflowX(page) {
   return page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
 }
+
+export async function cutLabels(page) {
+  return page.evaluate(() => [...document.querySelectorAll('button, [role=tab], label.opt span, select, .lbl')]
+    .filter((el) => el.getClientRects().length && el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()));
+}
