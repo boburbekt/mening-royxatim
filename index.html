@@ -98,12 +98,15 @@
   .t .orig{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .t .note{color:var(--muted);font-size:12px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{grid-area:tag;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
-  .status{grid-area:st;justify-self:start;font-size:12px;border-radius:999px;padding:4px 10px;font-weight:600;border:0;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center}
-  .s-done{background:color-mix(in srgb,var(--done) 16%,transparent);color:var(--done)}
-  .s-watching{background:color-mix(in srgb,var(--watching) 16%,transparent);color:var(--watching)}
-  .s-plan{background:color-mix(in srgb,var(--plan) 16%,transparent);color:var(--plan)}
-  .s-dropped{background:color-mix(in srgb,var(--dropped) 16%,transparent);color:var(--dropped)}
-  .status option{background:var(--panel2);color:var(--text)}
+  .meta{display:contents}
+  .go{display:none}
+  .status{grid-area:st;justify-self:start;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center}
+  .status span{display:block;font-size:12px;border-radius:999px;padding:4px 10px;font-weight:600}
+  .status:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:999px}
+  .s-done span{background:color-mix(in srgb,var(--done) 16%,transparent);color:var(--done)}
+  .s-watching span{background:color-mix(in srgb,var(--watching) 16%,transparent);color:var(--watching)}
+  .s-plan span{background:color-mix(in srgb,var(--plan) 16%,transparent);color:var(--plan)}
+  .s-dropped span{background:color-mix(in srgb,var(--dropped) 16%,transparent);color:var(--dropped)}
   .rate{grid-area:rate;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
   .rate small{color:var(--muted);font-weight:400}
   .r-hi{color:#ffd166}.r-mid{color:var(--text)}.r-lo{color:var(--muted)}
@@ -236,7 +239,11 @@
     .dist .lbl{display:none}
     .toolbar{grid-template-columns:minmax(0,1fr) auto auto;margin-bottom:8px}
     .toolbar .field{min-height:44px}
-    .row{grid-template-columns:42px minmax(0,1fr) auto;grid-template-areas:"img t rate" "img st rate";row-gap:4px;padding:8px 10px}
+    .row{grid-template-columns:42px minmax(0,1fr) 20px;grid-template-areas:"img t go" "img meta go";row-gap:2px;padding:8px 10px}
+    .meta{grid-area:meta;display:flex;align-items:center;gap:10px;min-width:0}
+    .meta .status{min-height:44px;display:flex;align-items:center}
+    .meta .rate{text-align:left}
+    .go{grid-area:go;display:grid;place-items:center;color:var(--muted)}
     .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
     .card .name{font-size:12.5px}
     .card .sub{display:none}
@@ -253,7 +260,19 @@
     .drop small{display:none}
     .media-acts{flex-direction:column;flex:1}
     .media-acts .btn{flex:none}
-    .stars button{height:34px;font-size:13px}
+    .stars{grid-template-columns:repeat(5,1fr)}
+    .stars button{height:44px;font-size:15px}
+    .menu-list{width:min(320px,calc(100vw - 24px))}
+    .menu-list .sw{width:44px;height:44px}
+    .menu-list button{min-height:44px}
+    details summary{min-height:44px;display:flex;align-items:center}
+    .x{width:44px;height:44px}
+    .btn,.btn.sm{min-height:44px}
+    .opt span{min-height:44px;display:inline-flex;align-items:center}
+    .views button{width:44px;height:44px}
+    .chip{min-height:44px}
+    .field{min-height:44px}
+    #statsBtn,#sortBtn,#urlOk{min-height:44px;min-width:44px}
   }
 </style>
 </head>
@@ -677,8 +696,9 @@ function renderTypes() {
   ).join("");
 }
 
-function statusSelect(it) {
-  return `<select class="status s-${it.status}" data-status aria-label="Holati">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === it.status ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+function statusButton(it) {
+  const label = STATUS[it.status];
+  return `<button type="button" class="status s-${it.status}" data-status aria-haspopup="dialog" aria-label="Holati: ${label}. O‘zgartirish"><span>${label}</span></button>`;
 }
 const rateHtml = (it) => (it.rating ? `${it.rating}<small>/10</small>` : "<small>—</small>");
 
@@ -723,8 +743,11 @@ function renderList() {
         ${it.note ? `<div class="note">${esc(it.note)}</div>` : ""}
       </div>
       <span class="tag">${esc(it.type)}</span>
-      ${statusSelect(it)}
-      <div class="rate ${rClass(it.rating)}">${rateHtml(it)}</div>
+      <div class="meta">
+        ${statusButton(it)}
+        <div class="rate ${rClass(it.rating)}">${rateHtml(it)}</div>
+      </div>
+      <span class="go" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
     </div>`;
   }).join("");
 }
@@ -767,19 +790,24 @@ $("#sortBtn").addEventListener("click", async () => {
   state.sort = v; $("#sort").value = v; renderList();
 });
 const findItem = (el) => items.find((x) => x.id === el.closest("[data-id]")?.dataset.id);
-$("#list").addEventListener("change", (e) => {
-  if (!e.target.matches("[data-status]")) return;
-  const it = findItem(e.target);
-  it.status = e.target.value; it.updated = Date.now(); save(); toast(`“${it.uz}” → ${STATUS[it.status]}`);
-});
+async function pickStatus(it) {
+  const options = [...Object.entries(STATUS).map(([value, label]) => ({ value, label, current: value === it.status })),
+    { value: "edit", label: "Tahrirlash" }];
+  const v = await askSheet({ title: it.uz, options });
+  if (v == null) return;
+  if (v === "edit") { openDialog(it); return; }
+  if (v === it.status) return;
+  it.status = v; it.updated = Date.now(); save(); toast(`“${it.uz}” → ${STATUS[v]}`);
+}
 $("#list").addEventListener("click", (e) => {
   if (e.target.closest(".clear")) { clearFilters(); return; }
-  if (e.target.closest("select")) return;
+  const sb = e.target.closest("[data-status]");
+  if (sb) { pickStatus(findItem(sb)); return; }
   const it = e.target.closest("[data-id]") && findItem(e.target);
   if (it) openDialog(it);
 });
 $("#list").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" || e.target.closest("select")) return;
+  if (e.key !== "Enter" || e.target.closest("[data-status]")) return;
   const it = e.target.closest("[data-id]") && findItem(e.target);
   if (it) openDialog(it);
 });
