@@ -176,6 +176,15 @@
   .stars button{height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-variant-numeric:tabular-nums;padding:0}
   .stars button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
   .dup{font-size:13px;color:var(--plan);margin-top:6px}
+  .find{margin-top:8px;font-size:13px;min-height:44px}
+  #sugg{display:grid;gap:6px;margin-top:8px}
+  .sug{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 10px;text-align:left;font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:10px;cursor:pointer}
+  .sug:hover{border-color:var(--line2)}
+  .sug img{width:40px;height:60px;flex:none;object-fit:cover;border-radius:6px;background:var(--panel)}
+  .sug .tx{min-width:0;flex:1}
+  .sug b,.sug small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sug b{font-size:15px;font-weight:600}
+  .sug small{font-size:13px;color:var(--muted,inherit);opacity:.8}
   .dup button{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline}
   details summary{cursor:pointer;color:var(--muted);font-size:13px;list-style:none}
   details summary::before{content:"▸ "}
@@ -388,6 +397,8 @@
           <label class="lbl" for="fUz">Nomi *</label>
           <input class="field" id="fUz" name="uz" autocomplete="off" placeholder="masalan: Naruto" enterkeyhint="done">
           <div class="dup" id="dup" hidden></div>
+          <button type="button" class="btn find" id="findBtn">Internetdan topish</button>
+          <div id="sugg" role="listbox" aria-label="Internetdan topilgan natijalar" hidden></div>
         </div>
 
         <div>
@@ -988,7 +999,7 @@ $("#stOpts").innerHTML = Object.entries(STATUS).map(([k, v]) =>
 $("#typeOpts").innerHTML = TYPES.map((t) =>
   `<label class="opt"><input type="radio" name="type" value="${t}"><span>${t}</span></label>`).join("");
 
-let editing = null, curRating = 0, curImg = null;
+let editing = null, curRating = 0, curImg = null, curMeta = null, dlgGen = 0;
 const RATE_WORDS = ["", "dahshat", "juda yomon", "yomon", "zaif", "o‘rtacha", "chidasa bo‘ladi", "yaxshi", "juda yaxshi", "a’lo", "eng zo‘ri!"];
 
 function drawStars() {
@@ -1039,6 +1050,101 @@ async function takeUrl() {
 $("#urlOk").addEventListener("click", takeUrl);
 $("#urlIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); takeUrl(); } });
 
+/* ---------- Internetdan topish ---------- */
+const ANILIST = "https://graphql.anilist.co", TVMAZE = "https://api.tvmaze.com";
+const ANILIST_Q = `query($search:String,$type:MediaType,$country:CountryCode,$formatIn:[MediaFormat],$formatNotIn:[MediaFormat]){Page(perPage:3){media(search:$search,type:$type,countryOfOrigin:$country,format_in:$formatIn,format_not_in:$formatNotIn,sort:SEARCH_MATCH){id title{romaji english} episodes chapters duration genres startDate{year} coverImage{large}}}}`;
+const ANILIST_BY_TYPE = {
+  "Anime": { type: "ANIME", formatNotIn: ["MOVIE", "MUSIC"] },
+  "Kino": { type: "ANIME", formatIn: ["MOVIE"] },
+  "Manga": { type: "MANGA", country: "JP" },
+  "Manhva": { type: "MANGA", country: "KR" },
+};
+const httpsUrl = (u) => (/^https:\/\//i.test(u || "") ? u : "");
+const metaSub = (parts) => parts.filter(Boolean).join(" · ");
+
+async function searchMeta(q, type, signal) {
+  try {
+    if (type === "Serial") {
+      const r = await fetch(`${TVMAZE}/search/shows?q=${encodeURIComponent(q)}`, { signal });
+      if (!r.ok) return [];
+      return (await r.json()).slice(0, 3).map(({ show: s }) => ({
+        src: "tvmaze", id: s.id, title: s.name || "",
+        sub: metaSub([s.premiered && s.premiered.slice(0, 4)]),
+        cover: httpsUrl(s.image?.original || s.image?.medium), total: 0,
+        epMin: s.averageRuntime || s.runtime || 0, genres: s.genres || [],
+      }));
+    }
+    const v = ANILIST_BY_TYPE[type]; if (!v) return [];
+    const r = await fetch(ANILIST, {
+      method: "POST", signal, headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: ANILIST_Q, variables: { search: q, ...v } }),
+    });
+    if (!r.ok) return [];
+    const list = (await r.json())?.data?.Page?.media || [];
+    return list.slice(0, 3).map((m) => {
+      const title = m.title?.english || m.title?.romaji || "", total = m.episodes || m.chapters || 0;
+      return {
+        src: "anilist", id: m.id, title,
+        sub: metaSub([m.title?.romaji !== title && m.title?.romaji, m.startDate?.year, total && `${total} qism`]),
+        cover: httpsUrl(m.coverImage?.large), total, epMin: m.duration || 0, genres: m.genres || [],
+      };
+    });
+  } catch { return []; } // tarmoq xatosi yoki bekor qilish
+}
+async function tvmazeEpisodes(id) {
+  try { const r = await fetch(`${TVMAZE}/shows/${id}/episodes`); return r.ok ? (await r.json()).length : 0; }
+  catch { return 0; }
+}
+
+let suggAbort = null, suggTimer = 0, suggList = [];
+function clearSugg() {
+  clearTimeout(suggTimer); suggAbort?.abort(); suggAbort = null;
+  suggList = []; $("#sugg").hidden = true; $("#sugg").innerHTML = "";
+}
+function drawSugg(list) {
+  suggList = list;
+  const box = $("#sugg"); box.hidden = !list.length;
+  box.innerHTML = list.map((m, i) =>
+    `<button type="button" class="sug" role="option" data-i="${i}"><img src="${esc(m.cover)}" alt="" width="40" height="60" loading="lazy" referrerpolicy="no-referrer"${m.cover ? "" : " hidden"}><span class="tx"><b>${esc(m.title)}</b><small>${esc(m.sub)}</small></span></button>`).join("");
+}
+async function runSearch(q, manual) {
+  suggAbort?.abort();
+  const ac = suggAbort = new AbortController(), gen = dlgGen;
+  const list = await searchMeta(q, form.type.value || "Anime", ac.signal);
+  if (ac.signal.aborted || gen !== dlgGen || !dlg.open) return;
+  drawSugg(list);
+  if (manual && !list.length) toast("Internetdan topilmadi");
+}
+function scheduleSearch() {
+  clearTimeout(suggTimer);
+  if (editing) return;
+  const q = form.uz.value.trim();
+  if (q.length < 3 || !navigator.onLine) { suggAbort?.abort(); drawSugg([]); return; }
+  suggTimer = setTimeout(() => runSearch(q, false), 400);
+}
+$("#fUz").addEventListener("input", scheduleSearch);
+$("#typeOpts").addEventListener("change", scheduleSearch);
+$("#findBtn").addEventListener("click", () => {
+  const q = (form.title.value || form.uz.value).trim();
+  if (!q) return toast("Avval nomini yozing");
+  clearTimeout(suggTimer); runSearch(q, true);
+});
+$("#sugg").addEventListener("click", async (e) => {
+  const b = e.target.closest(".sug"); if (!b) return;
+  const m = suggList[+b.dataset.i], gen = dlgGen; if (!m) return;
+  // Foydalanuvchi yozgan nom (uz) o‘zgarmaydi: faqat bo‘sh maydonlar to‘ldiriladi
+  curMeta = { epMin: m.epMin, genres: m.genres };
+  if (!form.title.value.trim()) form.title.value = m.title;
+  clearSugg(); $("#more").open = true;
+  toast(`Topildi: ${m.title}`);
+  if (m.src === "tvmaze") m.total = await tvmazeEpisodes(m.id);
+  if (gen !== dlgGen) return;
+  if (m.total && !toCount(form.total.value)) form.total.value = m.total;
+  if (!curImg && m.cover) {
+    try { const img = await urlToThumb(m.cover); if (gen === dlgGen && !curImg) { curImg = img; drawImg(); } } catch {}
+  }
+});
+
 // Takroriy nomni ogohlantirish
 $("#fUz").addEventListener("input", () => {
   setSaveDisabled();
@@ -1070,6 +1176,7 @@ function openDialog(it) {
   $("#more").open = !!(it && (it.progress || it.note || it.total || (it.title && norm(it.title) !== norm(it.uz))));
   curRating = it?.rating || 0; drawStars();
   curImg = it ? IMG.get(it.id) || null : null; drawImg();
+  curMeta = null; dlgGen++; clearSugg();
   $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
   setSaveDisabled();
   if (!dlg.open) { dlg.showModal(); openLayer(() => dlg.close()); }
@@ -1089,6 +1196,7 @@ function submit(again) {
     status: form.status.value || "done", rating: curRating, progress: form.progress.value.trim(),
     note: form.note.value.trim(), total: toCount(form.total.value),
   };
+  if (curMeta) Object.assign(data, curMeta); // epMin, genres — faqat internetdan topilgan bo‘lsa
   if (!data.uz) { form.uz.focus(); return toast("Nomini yozing"); }
   try { localStorage.setItem(LAST_KEY, JSON.stringify({ type: data.type, status: data.status })); } catch {}
   let it = editing;
