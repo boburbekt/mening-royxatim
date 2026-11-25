@@ -60,6 +60,10 @@ test('holatlar bo‘yicha: scroll 0, kesilgan yorliq 0', async ({ page }) => {
   await page.click('#menuBtn'); await page.click('[data-act=tier]');
   await page.locator('#page').getByRole('button', { name: 'Avto to‘ldirish' }).click(); await expectClean(page, 'tier sahifasi');
   await page.locator('#pageClose').click(); await expect(page.locator('#page')).toHaveJSProperty('open', false);
+  await page.click('#menuBtn'); await page.click('[data-act=compare]');
+  await page.setInputFiles('#friendIn', { name: 'dost.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ id: 'f2', order: 1, title: 'Naruto', uz: 'Naruto', type: 'Anime', status: 'done', rating: 10, progress: '', note: '', updated: 0 }])) });
+  await expect(page.locator('#page')).toContainText('Umumiy'); await expectClean(page, 'solishtirish sahifasi');
+  await page.locator('#pageClose').click(); await expect(page.locator('#page')).toHaveJSProperty('open', false);
 });
 
 test('ko‘p turli ro‘yxat holatlari: scroll 0, kesilgan yorliq 0', async ({ page }) => {

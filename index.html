@@ -228,6 +228,19 @@
   .share-btns{display:flex;gap:10px;flex-wrap:wrap}
   .share-btns .btn{flex:1;min-width:140px;min-height:48px;font-size:15px;text-decoration:none;color:var(--text);display:grid;place-items:center}
   .share-btns .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  /* ---------- Do‘st bilan solishtirish ---------- */
+  .menu-list button[hidden]{display:none}
+  .cmp-sum{font-size:15px;margin:0 0 12px}
+  .cmp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .cmp-tabs button{flex:1 1 auto;min-height:44px;padding:0 12px;font-size:13px;white-space:nowrap;background:var(--panel2);border:1px solid var(--line);border-radius:999px;color:var(--text);cursor:pointer}
+  .cmp-tabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .cmp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .cmp-row .t{min-width:0;flex:1}
+  .cmp-row .n{font-size:15px;overflow-wrap:anywhere}
+  .cmp-row .m{font-size:13px;color:var(--muted)}
+  .cmp-add{flex:none;min-width:44px;min-height:44px;padding:0 12px;font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);cursor:pointer}
+  .cmp-add[aria-disabled=true]{opacity:.6;cursor:default}
+  .cmp-empty{color:var(--muted);font-size:13px;padding:16px 0;text-align:center}
   /* ---------- Tier-list ---------- */
   .tbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
   .tbar .btn{min-height:44px;font-size:15px}
@@ -365,12 +378,15 @@
         <button data-act="tier">Tier-list</button>
         <button data-act="copy">Matn ko‘rinishida nusxalash</button>
         <button data-act="export">Zaxira faylni yuklab olish (rasmlar bilan)</button>
+        <button data-act="shareBackup" hidden>Zaxira faylni ulashish (Telegram…)</button>
+        <button data-act="compare">Do‘st bilan solishtirish</button>
         <button data-act="import">Zaxira fayldan tiklash</button>
         <button data-act="reset">Boshlang‘ich ro‘yxatga qaytarish</button>
         <p class="note">Ma’lumot faqat shu qurilmadagi brauzerda saqlanadi. Boshqa qurilmaga o‘tkazish uchun zaxira fayl oling.</p>
       </div>
     </div>
     <input type="file" id="fileIn" accept="application/json,.json" hidden>
+    <input type="file" id="friendIn" accept="application/json,.json" hidden>
   </header>
 
   <section id="overview">
@@ -1527,6 +1543,68 @@ function openTierPage() {
 }
 pageDlg.addEventListener("close", () => { if (items.some((it) => it.tier)) render(); });
 
+/* ---------- Do‘st bilan solishtirish ---------- */
+const keysOf = (it) => [...new Set([norm(it.title), norm(it.uz)].filter(Boolean))];
+function compareLists(mine, friend) {
+  const seen = (it) => it.status !== "plan";
+  const left = mine.filter(seen), used = new Set(), both = [], onlyFriend = [];
+  for (const fr of friend.filter(seen)) {
+    const fk = keysOf(fr);
+    const me = left.find((m) => !used.has(m) && keysOf(m).some((k) => fk.includes(k)));
+    if (me) { used.add(me); both.push({ me, fr }); } else onlyFriend.push(fr);
+  }
+  const rated = both.filter((p) => p.me.rating > 0 && p.fr.rating > 0);
+  const match = rated.length ? Math.round(100 - rated.reduce((a, p) => a + Math.abs(p.me.rating - p.fr.rating), 0) / rated.length * 10) : null;
+  onlyFriend.sort((a, b) => b.rating - a.rating);
+  return { both, onlyFriend, onlyMine: left.filter((m) => !used.has(m)), match };
+}
+function addFriendPlan(fr, btn) {
+  if (btn.getAttribute("aria-disabled") === "true") return;
+  const fk = keysOf(fr);
+  if (items.some((it) => keysOf(it).some((k) => fk.includes(k)))) { toast("Ro‘yxatingda bor"); return; }
+  const it = {
+    id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, title: fr.title, uz: fr.uz, type: fr.type,
+    status: "plan", rating: 0, progress: "", note: "", updated: Date.now(),
+    doneAt: 0, total: fr.total, epMin: fr.epMin, genres: fr.genres, tier: "",
+  };
+  if (typeof fr.img === "string" && fr.img.startsWith("data:image/")) setImage(it.id, fr.img);
+  items.push(it); save();
+  btn.textContent = "Qo‘shildi"; btn.setAttribute("aria-disabled", "true");
+  toast(`Rejaga qo‘shildi: ${fr.uz || fr.title}`);
+}
+function openComparePage(friend, tab = "both") {
+  const c = compareLists(items, friend);
+  const name = (it) => it.uz || it.title;
+  const tabs = [["both", `Ikkalamiz (${c.both.length})`], ["friend", `U ko‘rgan (${c.onlyFriend.length})`], ["mine", `Men ko‘rgan (${c.onlyMine.length})`]];
+  const rows = tab === "both" ? c.both.map((p) => ({ it: p.fr, meta: `Men: ${p.me.rating || "—"} · U: ${p.fr.rating || "—"}` }))
+    : tab === "friend" ? c.onlyFriend.map((it) => ({ it, meta: `U: ${it.rating || "—"}/10`, add: true }))
+    : c.onlyMine.map((it) => ({ it, meta: `Men: ${it.rating || "—"}/10` }));
+  const box = document.createElement("div");
+  box.innerHTML = `<p class="cmp-sum">Umumiy: ${c.both.length} ta${c.match == null ? "" : ` · Did mosligi: ${c.match}%`}</p>
+    <div class="cmp-tabs">${tabs.map(([k, l]) => `<button type="button" data-tab="${k}" aria-pressed="${k === tab}">${esc(l)}</button>`).join("")}</div>
+    ${rows.length ? rows.map((r, i) => `<div class="cmp-row"><div class="t"><div class="n">${esc(name(r.it))}</div><div class="m">${esc(r.it.type)} · ${esc(r.meta)}</div></div>${r.add ? `<button type="button" class="cmp-add" data-i="${i}" aria-disabled="false">+ Rejaga</button>` : ""}</div>`).join("") : `<p class="cmp-empty">Bu yerda hozircha hech narsa yo‘q</p>`}`;
+  box.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-tab]"); if (t) return openComparePage(friend, t.dataset.tab);
+    const a = e.target.closest(".cmp-add"); if (a) addFriendPlan(rows[+a.dataset.i].it, a);
+  });
+  openPage({ title: "Do‘st bilan solishtirish", body: box });
+}
+$("#friendIn").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let data;
+  try { data = parseBackup(await f.text()); } catch { toast("Bu fayl mos emas — do‘stingning zaxira faylini tanlang.", { ms: 5000 }); return; }
+  openComparePage(data);
+});
+
+/* ---------- Zaxirani ulashish ---------- */
+const backupJson = () => JSON.stringify(items.map((it) => (IMG.has(it.id) ? { ...it, img: IMG.get(it.id) } : it)), null, 2);
+const canShareFiles = (() => { try { return !!navigator.canShare?.({ files: [new File(["x"], "x.json", { type: "application/json" })] }); } catch { return false; } })();
+if (canShareFiles) $('#menu [data-act="shareBackup"]').hidden = false;
+async function shareBackup() {
+  const file = new File([backupJson()], `mening-royxatim-${new Date().toISOString().slice(0, 10)}.json`, { type: "application/json" });
+  try { await navigator.share({ files: [file], title: "Mening ro‘yxatim — zaxira" }); } catch { /* bekor qilindi */ }
+}
+
 /* ---------- Menyu: nusxa, eksport, import ---------- */
 $("#menuBtn").addEventListener("click", (e) => { e.stopPropagation(); $("#menu").classList.toggle("open"); });
 document.addEventListener("click", () => $("#menu").classList.remove("open"));
@@ -1538,13 +1616,14 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
     toast(await copyText(txt) ? "Ro‘yxat nusxalandi" : "Nusxalab bo‘lmadi");
   }
   if (act === "export") {
-    const data = items.map((it) => (IMG.has(it.id) ? { ...it, img: IMG.get(it.id) } : it));
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([backupJson()], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `mening-royxatim-${new Date().toISOString().slice(0, 10)}.json`;
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("Fayl saqlandi");
   }
+  if (act === "shareBackup") shareBackup();
+  if (act === "compare") $("#friendIn").click();
   if (act === "year") openYearPage();
   if (act === "tier") openTierPage();
   if (act === "import") $("#fileIn").click();
