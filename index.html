@@ -53,6 +53,8 @@
   .menu-list .sw:hover{background:var(--c);transform:scale(1.08)}
   .menu-list .sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--panel2) inset}
   .fab{display:none}
+  svg{flex:none}
+  .btn svg{vertical-align:-5px}
 
   /* ---------- Statistika ---------- */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px}
@@ -95,6 +97,7 @@
   .thumb{grid-area:img;width:42px;height:60px;border-radius:7px;overflow:hidden}
   .t{grid-area:t;min-width:0}
   .t .uz{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .btn[aria-disabled=true]{opacity:.55}
   .t .orig{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .t .note{color:var(--muted);font-size:12px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{grid-area:tag;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
@@ -245,7 +248,6 @@
     .meta .rate{text-align:left}
     .go{grid-area:go;display:grid;place-items:center;color:var(--muted)}
     .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
-    .card .name{font-size:12.5px}
     .card .sub{display:none}
     .poster .ph{font-size:20px}
     .badge{font-size:11px;padding:1px 5px}
@@ -273,6 +275,15 @@
     .chip{min-height:44px}
     .field{min-height:44px}
     #statsBtn,#sortBtn,#urlOk{min-height:44px;min-width:44px}
+    /* Shrift shkalasi: 12 / 13 / 15 / 16 / 20 */
+    body{font-size:15px}
+    input,select,textarea{font-size:16px}
+    header h1,.sheet-head h2,#ask h2,.stat b,.poster .ph{font-size:20px}
+    .thumb .ph,.t .orig,.t .note,.card .name,.count,.avg-line,.lbl,.themes .lbl,.chip,.opt span,.drop,.dup,details summary,.btn.sm,#ask p,.views button,.menu-list button{font-size:13px}
+    .badge,.hint,.stat small,.bar span,.status span,.drop small{font-size:12px}
+    .fab,.x{font-size:15px}
+    .drop .big{font-size:13px}
+    .t .uz{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   }
 </style>
 </head>
@@ -283,7 +294,7 @@
     <button class="stats-btn" id="statsBtn" aria-expanded="false" aria-controls="overview" aria-label="Statistika">⌀ —</button>
     <button class="btn primary" id="addBtn" title="Yangi qo‘shish (N)">+ Qo‘shish</button>
     <div class="menu" id="menu">
-      <button class="btn" id="menuBtn" aria-label="Boshqa amallar">⋯</button>
+      <button class="btn" id="menuBtn" aria-label="Boshqa amallar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
       <div class="menu-list">
         <div class="themes" id="themes">
           <span class="lbl">Rang</span>
@@ -320,8 +331,8 @@
     </select>
     <button class="sort-btn" id="sortBtn" aria-label="Saralash"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg></button>
     <div class="views" id="views">
-      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi">☰<span class="vt"> Ro‘yxat</span></button>
-      <button data-view="grid" aria-label="Poster ko‘rinishi">▦<span class="vt"> Poster</span></button>
+      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg><span class="vt"> Ro‘yxat</span></button>
+      <button data-view="grid" aria-label="Poster ko‘rinishi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><span class="vt"> Poster</span></button>
     </div>
   </div>
   <nav id="tabs" role="tablist" aria-label="Holat"></nav>
@@ -331,23 +342,23 @@
   <div id="list"></div>
 </div>
 
-<button class="fab" id="fab" aria-label="Yangi qo‘shish">+</button>
+<button class="fab" id="fab" aria-label="Yangi qo‘shish"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <dialog id="dlg" aria-labelledby="dlgTitle">
   <form class="sheet" id="form" novalidate>
     <div class="sheet-head">
       <h2 id="dlgTitle">Yangi qo‘shish</h2>
-      <button type="button" class="x" id="closeBtn" aria-label="Yopish">×</button>
+      <button type="button" class="x" id="closeBtn" aria-label="Yopish"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
     <div class="sheet-body">
       <div class="media">
         <button type="button" class="drop" id="drop" aria-label="Rasm qo‘shish">
           <img id="prev" alt="" hidden>
-          <span id="dropHint"><span class="big">🖼</span>Rasm qo‘shish<small>bosing, sudrab tashlang yoki Ctrl+V</small></span>
+          <span id="dropHint"><span class="big"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-8 9"/></svg></span>Rasm qo‘shish<small>bosing, sudrab tashlang yoki Ctrl+V</small></span>
         </button>
         <div class="media-acts">
-          <button type="button" class="btn sm" id="urlBtn">🔗 Havola</button>
+          <button type="button" class="btn sm" id="urlBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> Havola</button>
           <button type="button" class="btn sm danger" id="rmImg" hidden>Olib tashlash</button>
         </div>
         <div class="urlbox" id="urlBox">
@@ -416,6 +427,9 @@
 const KEY = "mening-royxatim-v1";
 const VIEW_KEY = "mening-royxatim-view";
 const LAST_KEY = "mening-royxatim-last";
+const ICON = {
+  chevron: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+};
 const STATUS = { done: "Ko‘rilgan", watching: "Ko‘rilmoqda", plan: "Rejada", dropped: "Tashlangan" };
 const STATUS_COLOR = { done: "var(--done)", watching: "var(--watching)", plan: "var(--plan)", dropped: "var(--dropped)" };
 const TYPES = ["Anime", "Manga", "Manhva", "Kino", "Serial"];
@@ -733,7 +747,7 @@ function renderList() {
   box.className = "list";
   box.innerHTML = rows.map((it) => {
     const showOrig = it.title && norm(it.title) !== norm(it.uz);
-    const sub = [showOrig ? esc(it.title) : "", it.progress ? "⏸ " + esc(it.progress) : ""].filter(Boolean).join(" · ");
+    const sub = [showOrig ? esc(it.title) : "", it.progress ? "To‘xtadim: " + esc(it.progress) : ""].filter(Boolean).join(" · ");
     return `<div class="row" data-id="${it.id}" tabindex="0" role="button">
       <div class="num">${it.order}</div>
       <div class="thumb">${cover(it)}</div>
@@ -747,7 +761,7 @@ function renderList() {
         ${statusButton(it)}
         <div class="rate ${rClass(it.rating)}">${rateHtml(it)}</div>
       </div>
-      <span class="go" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+      <span class="go" aria-hidden="true">${ICON.chevron}</span>
     </div>`;
   }).join("");
 }
@@ -910,6 +924,7 @@ $("#urlIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.prev
 
 // Takroriy nomni ogohlantirish
 $("#fUz").addEventListener("input", () => {
+  setSaveDisabled();
   const q = norm(form.uz.value), d = $("#dup");
   const hits = q.length < 3 ? [] : items.filter((x) => x !== editing && (norm(x.uz) === q || norm(x.title) === q || (q.length >= 4 && (norm(x.uz).includes(q) || norm(x.title).includes(q))))).slice(0, 2);
   d.hidden = !hits.length;
@@ -919,6 +934,11 @@ $("#dup").addEventListener("click", (e) => {
   const id = e.target.dataset.open; if (id) openDialog(items.find((x) => x.id === id));
 });
 
+const saveBtn = () => document.querySelector(".sheet-foot button[type=submit]");
+function setSaveDisabled() {
+  const off = !form.uz.value.trim();
+  for (const b of [saveBtn(), $("#againBtn")]) { if (off) b.setAttribute("aria-disabled", "true"); else b.removeAttribute("aria-disabled"); }
+}
 function openDialog(it) {
   editing = it || null;
   const last = JSON.parse(localStorage.getItem(LAST_KEY) || "{}");
@@ -933,6 +953,7 @@ function openDialog(it) {
   curRating = it?.rating || 0; drawStars();
   curImg = it ? IMG.get(it.id) || null : null; drawImg();
   $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
+  setSaveDisabled();
   if (!dlg.open) { dlg.showModal(); openLayer(() => dlg.close()); }
   $(".sheet-body").scrollTop = 0;
   if (!it || matchMedia("(min-width:641px)").matches) form.uz.focus();
