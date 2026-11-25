@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
-import { fresh } from './helpers.mjs';
+import { fresh, seedItems } from './helpers.mjs';
 
 test('eski va yangi zaxira fayl', async ({ page }) => {
   await fresh(page);
@@ -43,4 +43,12 @@ test('eksportda yangi maydonlar bor', async ({ page }) => {
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=export]')]);
   const data = JSON.parse(await fs.readFile(await dl.path(), 'utf8'));
   expect(Object.keys(data[0])).toEqual(expect.arrayContaining(['doneAt', 'total', 'epMin', 'genres', 'tier']));
+});
+
+test('buzuq yozuv ro‘yxatni o‘chirmaydi', async ({ page }) => {
+  await seedItems(page, [null, { id: 'v1', order: 1, title: 'V', uz: 'Yaroqli', type: 'Anime', status: 'done', rating: 5, progress: '', note: '', updated: 0 }]);
+  await page.goto('/');
+  await expect(page.locator('#list .row')).toHaveCount(1);
+  const stored = await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']));
+  expect(stored.some((x) => x && x.id === 'v1')).toBe(true);
 });
