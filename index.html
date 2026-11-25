@@ -171,6 +171,23 @@
 
   .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:100;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
+  .toast.act{display:flex;align-items:center;gap:12px;padding-right:6px}
+  .toast.act.show{pointer-events:auto}
+  .toast button{background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;min-height:44px;min-width:44px;padding:0 12px;white-space:nowrap}
+
+  /* ---------- Tasdiqlash oynasi (askSheet) ---------- */
+  #ask{width:min(360px,94vw);padding:18px 16px calc(14px + env(safe-area-inset-bottom))}
+  #ask h2{margin:0 0 6px;font-size:18px}
+  #ask p{margin:0 0 12px;color:var(--muted);font-size:13px}
+  #ask .ask-opts{display:flex;flex-direction:column;gap:8px}
+  #ask .ask-opts button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 14px;text-align:left;font-size:15px;white-space:normal;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);cursor:pointer}
+  #ask .ask-opts button:hover{border-color:var(--line2)}
+  #ask .ask-opts button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  #ask .ask-opts button.danger{color:#ff7b7b}
+  [data-theme=light] #ask .ask-opts button.danger{color:#c62828}
+  #ask .ask-opts button[aria-current=true]{border-color:var(--accent);font-weight:600}
+  #ask .ask-opts button[aria-current=true]::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+  #ask .ask-cancel{margin-top:8px;width:100%;min-height:48px}
 
   /* ---------- Planshet ---------- */
   @media (max-width:860px){
@@ -182,6 +199,8 @@
     .wrap{padding:14px 12px 110px}
     #addBtn{display:none}
     .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:30px;line-height:1;border:0;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 40%,transparent);z-index:30;cursor:pointer}
+    .toast{bottom:calc(92px + env(safe-area-inset-bottom))}
+    #ask{width:100vw;margin:auto 0 0;border-radius:18px 18px 0 0;border-bottom:0}
     .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
     .stat b{font-size:19px}
     .stat small{font-size:12px}
@@ -336,6 +355,8 @@
   </form>
 </dialog>
 
+<dialog id="ask" aria-labelledby="askTitle"></dialog>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -428,7 +449,7 @@ const seedItems = () => SEED.map((r, i) => ({
 /* ---------- Saqlash: yozuvlar localStorage’da, rasmlar IndexedDB’da ---------- */
 function store(v) {
   try { localStorage.setItem(KEY, JSON.stringify(v)); }
-  catch (e) { if (!store.warned) { store.warned = true; alert("Brauzer ma’lumotni saqlashga ruxsat bermadi — o‘zgarishlar sahifa yopilganda yo‘qoladi. JSON zaxira oling."); } }
+  catch (e) { if (!store.warned) { store.warned = true; toast("Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.", { ms: 8000 }); } }
 }
 function load() {
   try {
@@ -486,9 +507,78 @@ const cover = (it) => IMG.has(it.id)
   ? `<img class="cover" src="${esc(IMG.get(it.id))}" alt="" loading="lazy">`
   : `<div class="ph" style="--h:${hue(it.uz || it.title)}">${esc(initials(it.uz || it.title))}</div>`;
 
-function toast(msg) {
+function toast(msg, { ms, action } = {}) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 1900);
+  t.classList.toggle("act", !!action);
+  if (action) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = action.label;
+    b.addEventListener("click", () => { clearTimeout(toast._t); t.classList.remove("show"); action.run(); });
+    t.append(b);
+  }
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms || (action ? 5000 : 1900));
+}
+
+/* ---------- Oyna qatlamlari: Android "orqaga" tugmasi oynani yopadi ---------- */
+const layers = []; let skipPop = 0;
+function openLayer(onBack) {
+  layers.push(onBack); history.pushState({ layer: layers.length }, "");
+}
+function closeLayer() { // oyna ilovaning o‘zida yopilganda: ortiqcha history yozuvi qolmasin
+  if (!layers.length) return;
+  layers.pop(); skipPop++; history.back();
+}
+window.addEventListener("popstate", () => {
+  if (skipPop) { skipPop--; return; }
+  const back = layers.pop(); if (back) back();
+});
+
+/* Tasdiqlash / tanlash oynasi: mobilda pastdan, desktopda markazda */
+let askDone = null;
+function askSheet({ title, text, options, cancelLabel = "Bekor qilish" }) {
+  askDone?.(null, true);
+  const d = $("#ask");
+  d.innerHTML = `<h2 id="askTitle">${esc(title)}</h2>${text ? `<p>${esc(text)}</p>` : ""}
+    <div class="ask-opts">${options.map((o) => `<button type="button" data-v="${esc(o.value)}"${o.tone ? ` class="${o.tone}"` : ""}${o.current ? ' aria-current="true"' : ""}>${esc(o.label)}</button>`).join("")}</div>
+    <button type="button" class="btn ask-cancel" data-cancel>${esc(cancelLabel)}</button>`;
+  return new Promise((resolve) => {
+    askDone = (v, viaUI) => { askDone = null; d.close(); if (viaUI) closeLayer(); resolve(v); };
+    d.onclick = (e) => {
+      const b = e.target.closest("button");
+      if (b) askDone(b.hasAttribute("data-cancel") ? null : b.dataset.v, true);
+      else if (e.target === d) askDone(null, true);
+    };
+    d.oncancel = (e) => { e.preventDefault(); askDone?.(null, true); };
+    openLayer(() => askDone?.(null, false));
+    d.showModal(); d.querySelector("[data-cancel]").focus();
+  });
+}
+
+/* O‘chirish: o‘rnini va rasmini eslab qoladi; restore() qaytaradi */
+function removeItem(it) {
+  const idx = items.indexOf(it), gone = it.order, img = IMG.get(it.id);
+  items = items.filter((x) => x !== it);
+  items.forEach((x) => { if (x.order > gone) x.order--; });
+  IMG.delete(it.id); // IndexedDB’dan faqat bekor qilish vaqti o‘tgach o‘chadi
+  let undone = false;
+  setTimeout(() => { if (!undone) DB.del(it.id).catch(() => {}); }, 5500);
+  save();
+  return () => {
+    if (undone) return; undone = true;
+    items.forEach((x) => { if (x.order >= gone) x.order++; });
+    items.splice(Math.min(idx, items.length), 0, it);
+    if (img) IMG.set(it.id, img);
+    save();
+  };
+}
+
+async function copyText(txt) {
+  try { await navigator.clipboard.writeText(txt); return true; } catch {}
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.append(ta); ta.select(); ta.setSelectionRange(0, txt.length);
+    const ok = document.execCommand("copy"); ta.remove(); return ok;
+  } catch { return false; }
 }
 
 /* ---------- Ko‘rsatish ---------- */
@@ -754,11 +844,12 @@ function openDialog(it) {
   curRating = it?.rating || 0; drawStars();
   curImg = it ? IMG.get(it.id) || null : null; drawImg();
   $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
-  if (!dlg.open) dlg.showModal();
+  if (!dlg.open) { dlg.showModal(); openLayer(() => dlg.close()); }
   $(".sheet-body").scrollTop = 0;
   if (!it || matchMedia("(min-width:641px)").matches) form.uz.focus();
 }
-const closeDialog = () => dlg.close();
+const closeDialog = () => { if (dlg.open) { dlg.close(); closeLayer(); } };
+dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(); }); // Esc
 $("#addBtn").addEventListener("click", () => openDialog());
 $("#fab").addEventListener("click", () => openDialog());
 $("#closeBtn").addEventListener("click", closeDialog);
@@ -783,17 +874,15 @@ function submit(again) {
 form.addEventListener("submit", (e) => { e.preventDefault(); submit(false); });
 $("#againBtn").addEventListener("click", () => submit(true));
 $("#delBtn").addEventListener("click", () => {
-  if (!editing || !confirm(`“${editing.uz}” ro‘yxatdan o‘chirilsinmi?`)) return;
-  const gone = editing.order;
-  setImage(editing.id, null);
-  items = items.filter((x) => x !== editing);
-  items.forEach((x) => { if (x.order > gone) x.order--; });
-  closeDialog(); save(); toast("O‘chirildi");
+  if (!editing) return;
+  const it = editing; closeDialog();
+  const restore = removeItem(it);
+  toast(`O‘chirildi: ${it.uz}`, { action: { label: "Bekor qilish", run: restore } });
 });
 
 /* ---------- Klaviatura: N — qo‘shish, / — qidirish ---------- */
 document.addEventListener("keydown", (e) => {
-  if (dlg.open || e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  if (dlg.open || $("#ask").open || e.metaKey || e.ctrlKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
   if (e.key === "n" || e.key === "N") { e.preventDefault(); openDialog(); }
   if (e.key === "/") { e.preventDefault(); $("#q").focus(); }
 });
@@ -820,8 +909,7 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
   if (act === "copy") {
     const txt = [...items].sort((a, b) => a.order - b.order)
       .map((it, i) => `${i + 1}. ${it.title || it.uz} | ${it.uz} | ${STATUS[it.status]} | ${it.rating ? it.rating + "/10" : "—"}`).join("\n");
-    try { await navigator.clipboard.writeText(txt); toast("Ro‘yxat nusxalandi"); }
-    catch { prompt("Nusxa oling:", txt); }
+    toast(await copyText(txt) ? "Ro‘yxat nusxalandi" : "Nusxalab bo‘lmadi");
   }
   if (act === "export") {
     const data = items.map((it) => (IMG.has(it.id) ? { ...it, img: IMG.get(it.id) } : it));
@@ -832,7 +920,10 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("Fayl saqlandi");
   }
   if (act === "import") $("#fileIn").click();
-  if (act === "reset" && confirm("Hozirgi ro‘yxat va rasmlar o‘chib, boshlang‘ich 69 ta yozuv qaytariladi. Davom etilsinmi? (Avval JSON zaxira olishni unutmang)")) {
+  if (act === "reset" && await askSheet({
+    title: "Boshlang‘ich ro‘yxatga qaytarilsinmi?", text: "Hozirgi ro‘yxat va rasmlar o‘chadi. Avval zaxira fayl oling.",
+    options: [{ value: "ok", label: "Ha, qaytarish", tone: "danger" }],
+  })) {
     items = seedItems(); IMG.clear(); DB.clear().catch(() => {}); save(); toast("Boshlang‘ich ro‘yxat tiklandi");
   }
 });
@@ -841,7 +932,10 @@ $("#fileIn").addEventListener("change", async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (!Array.isArray(data) || !data.every((x) => x && typeof x.uz === "string" && STATUS[x.status])) throw 0;
-    if (!confirm(`${data.length} ta yozuv yuklanadi va hozirgi ro‘yxat almashtiriladi. Davom etilsinmi?`)) return;
+    if (!await askSheet({
+      title: `${data.length} ta yozuv yuklansinmi?`, text: "Hozirgi ro‘yxat almashtiriladi.",
+      options: [{ value: "ok", label: "Ha, yuklash", tone: "primary" }],
+    })) return;
     IMG.clear(); await DB.clear().catch(() => {});
     items = data.map((x, i) => {
       const it = {
@@ -853,7 +947,7 @@ $("#fileIn").addEventListener("change", async (e) => {
       return it;
     });
     save(); toast("Yuklandi");
-  } catch { alert("Bu fayl mos emas — shu ilovadan saqlangan JSON faylni tanlang."); }
+  } catch { toast("Bu fayl mos emas — shu ilovadan olingan zaxira faylni tanlang.", { ms: 5000 }); }
 });
 
 /* ---------- Ishga tushirish ---------- */
