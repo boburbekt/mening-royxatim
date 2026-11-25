@@ -28,7 +28,7 @@ test('zaxira fayl formati', async ({ page }) => {
   expect(dl.suggestedFilename()).toMatch(/^mening-royxatim-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(await fs.readFile(await dl.path(), 'utf8'));
   expect(data).toHaveLength(69);
-  expect(Object.keys(data[0]).sort()).toEqual(['id','note','order','progress','rating','status','title','type','updated','uz']);
+  expect(Object.keys(data[0]).sort()).toEqual(['doneAt','epMin','genres','id','note','order','progress','rating','status','tier','title','total','type','updated','uz']);
 });
 
 test('desktop tuzilmasi o‘zgarmagan', async ({ page }) => {

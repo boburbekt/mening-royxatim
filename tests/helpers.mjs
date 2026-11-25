@@ -46,3 +46,11 @@ export async function cutLabels(page) {
   return page.evaluate(() => [...document.querySelectorAll('button, [role=tab], label.opt span, select, .lbl')]
     .filter((el) => el.getClientRects().length && el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()));
 }
+
+export async function seedItems(page, items) {
+  await page.addInitScript((items) => {
+    if (sessionStorage.getItem('__seeded')) return;
+    sessionStorage.setItem('__seeded', '1');
+    localStorage.setItem('mening-royxatim-v1', JSON.stringify(items));
+  }, items);
+}

@@ -414,6 +414,10 @@
               <input class="field" id="fProg" name="progress" placeholder="masalan: 2-fasl, 14-qism" autocomplete="off">
             </div>
             <div>
+              <label class="lbl" for="fTotal">Jami qismlar (bob)</label>
+              <input class="field" id="fTotal" name="total" inputmode="numeric" placeholder="masalan: 24" autocomplete="off">
+            </div>
+            <div>
               <label class="lbl" for="fNote">Izoh</label>
               <textarea class="field" id="fNote" name="note" rows="2"></textarea>
             </div>
@@ -519,10 +523,37 @@ const SEED = [
   ["Zom 100: Bucket List of the Dead", "Zombi 100", "done", 7],
 ];
 
+const toCount = (v) => { const n = Math.floor(+v); return n > 0 && isFinite(n) ? n : 0; };
+function normalizeItem(x, i) {
+  return {
+    id: x.id || uid(), order: x.order || i + 1, title: x.title || "", uz: x.uz,
+    type: TYPES.includes(x.type) ? x.type : "Anime", status: x.status, rating: +x.rating || 0,
+    progress: x.progress || "", note: x.note || "", updated: x.updated || 0,
+    doneAt: toCount(x.doneAt), total: toCount(x.total), epMin: toCount(x.epMin),
+    genres: Array.isArray(x.genres) ? x.genres.filter((g) => typeof g === "string").slice(0, 6) : [],
+    tier: ["S", "A", "B", "C"].includes(x.tier) ? x.tier : "",
+  };
+}
+function parseBackup(text) {
+  const data = JSON.parse(text);
+  if (!Array.isArray(data) || !data.every((x) => x && typeof x.uz === "string" && STATUS[x.status])) throw new Error("bad backup");
+  return data.map((x, i) => {
+    const it = normalizeItem(x, i);
+    if (typeof x.img === "string" && /^(data:image\/|https?:\/\/)/.test(x.img)) it.img = x.img;
+    return it;
+  });
+}
+function setStatus(it, status) {
+  const was = it.status;
+  it.status = status; it.updated = Date.now();
+  if (status === "done" && was !== "done") it.doneAt = Date.now();
+  else if (status !== "done") it.doneAt = 0;
+}
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const seedItems = () => SEED.map((r, i) => ({
   id: uid(), order: i + 1, title: r[0], uz: r[1], type: "Anime", status: r[2],
   rating: r[3], progress: "", note: r[4] || "", updated: 0,
+  doneAt: 0, total: 0, epMin: 0, genres: [], tier: "",
 }));
 
 /* ---------- Saqlash: yozuvlar localStorage’da, rasmlar IndexedDB’da ---------- */
@@ -533,7 +564,7 @@ function store(v) {
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) return v; }
+    if (raw) { const v = JSON.parse(raw); if (Array.isArray(v)) return v.map(normalizeItem); }
   } catch (e) {}
   const s = seedItems(); store(s); return s;
 }
@@ -851,7 +882,7 @@ async function pickStatus(it) {
   if (v == null) return;
   if (v === "edit") { openDialog(it); return; }
   if (v === it.status) return;
-  it.status = v; it.updated = Date.now(); save(); toast(`“${it.uz}” → ${STATUS[v]}`);
+  setStatus(it, v); save(); toast(`“${it.uz}” → ${STATUS[v]}`);
 }
 $("#list").addEventListener("click", (e) => {
   if (e.target.closest(".clear")) { clearFilters(); return; }
@@ -988,8 +1019,8 @@ function openDialog(it) {
   form.uz.value = it?.uz || ""; form.title.value = it?.title || "";
   form.type.value = it?.type || (state.type !== "all" ? state.type : last.type || "Anime");
   form.status.value = it?.status || last.status || "done";
-  form.progress.value = it?.progress || ""; form.note.value = it?.note || "";
-  $("#more").open = !!(it && (it.progress || it.note || (it.title && norm(it.title) !== norm(it.uz))));
+  form.progress.value = it?.progress || ""; form.total.value = it?.total || ""; form.note.value = it?.note || "";
+  $("#more").open = !!(it && (it.progress || it.note || it.total || (it.title && norm(it.title) !== norm(it.uz))));
   curRating = it?.rating || 0; drawStars();
   curImg = it ? IMG.get(it.id) || null : null; drawImg();
   $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
@@ -1009,13 +1040,17 @@ function submit(again) {
   const data = {
     uz: form.uz.value.trim(), title: form.title.value.trim(), type: form.type.value || "Anime",
     status: form.status.value || "done", rating: curRating, progress: form.progress.value.trim(),
-    note: form.note.value.trim(), updated: Date.now(),
+    note: form.note.value.trim(), total: toCount(form.total.value),
   };
   if (!data.uz) { form.uz.focus(); return toast("Nomini yozing"); }
   try { localStorage.setItem(LAST_KEY, JSON.stringify({ type: data.type, status: data.status })); } catch {}
   let it = editing;
-  if (it) Object.assign(it, data);
-  else { it = { id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, ...data }; items.push(it); }
+  const { status, ...rest } = data;
+  if (it) { Object.assign(it, rest); setStatus(it, status); }
+  else {
+    it = normalizeItem({ id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, ...rest, status }, 0);
+    setStatus(it, "plan"); setStatus(it, status); items.push(it);
+  }
   if ((IMG.get(it.id) || null) !== curImg) setImage(it.id, curImg);
   save();
   toast(editing ? "Saqlandi" : `Qo‘shildi: ${data.uz}`);
@@ -1080,22 +1115,13 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
 $("#fileIn").addEventListener("change", async (e) => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try {
-    const data = JSON.parse(await f.text());
-    if (!Array.isArray(data) || !data.every((x) => x && typeof x.uz === "string" && STATUS[x.status])) throw 0;
+    const data = parseBackup(await f.text());
     if (!await askSheet({
       title: `${data.length} ta yozuv yuklansinmi?`, text: "Hozirgi ro‘yxat almashtiriladi.",
       options: [{ value: "ok", label: "Ha, yuklash", tone: "primary" }],
     })) return;
     IMG.clear(); await DB.clear().catch(() => {});
-    items = data.map((x, i) => {
-      const it = {
-        id: x.id || uid(), order: x.order || i + 1, title: x.title || "", uz: x.uz,
-        type: TYPES.includes(x.type) ? x.type : "Anime", status: x.status, rating: +x.rating || 0,
-        progress: x.progress || "", note: x.note || "", updated: x.updated || 0,
-      };
-      if (typeof x.img === "string" && /^(data:image\/|https?:\/\/)/.test(x.img)) setImage(it.id, x.img);
-      return it;
-    });
+    items = data.map(({ img, ...it }) => { if (img) setImage(it.id, img); return it; });
     save(); toast("Yuklandi");
   } catch { toast("Bu fayl mos emas — shu ilovadan olingan zaxira faylni tanlang.", { ms: 5000 }); }
 });
