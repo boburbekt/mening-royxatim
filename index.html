@@ -380,7 +380,7 @@
         <button data-act="export">Zaxira faylni yuklab olish (rasmlar bilan)</button>
         <button data-act="shareBackup" hidden>Zaxira faylni ulashish (Telegram…)</button>
         <button data-act="compare">Do‘st bilan solishtirish</button>
-        <button data-act="import">Zaxira fayldan tiklash</button>
+        <button data-act="import">Zaxira fayldan yangilash / tiklash</button>
         <button data-act="reset">Boshlang‘ich ro‘yxatga qaytarish</button>
         <p class="note">Ma’lumot faqat shu qurilmadagi brauzerda saqlanadi. Boshqa qurilmaga o‘tkazish uchun zaxira fayl oling.</p>
       </div>
@@ -596,7 +596,7 @@ const toCount = (v) => { const n = Math.floor(+v); return n > 0 && isFinite(n) ?
 function normalizeItem(x, i) {
   return {
     id: x.id || uid(), order: x.order || i + 1, title: x.title || "", uz: x.uz,
-    type: TYPES.includes(x.type) ? x.type : "Anime", status: x.status, rating: +x.rating || 0,
+    type: TYPES.includes(x.type) ? x.type : "Anime", status: x.status, rating: Math.min(10, Math.max(0, Math.round(+x.rating) || 0)),
     progress: x.progress || "", note: x.note || "", updated: x.updated || 0,
     doneAt: toCount(x.doneAt), total: toCount(x.total), epMin: toCount(x.epMin),
     genres: Array.isArray(x.genres) ? x.genres.filter((g) => typeof g === "string").slice(0, 6) : [],
@@ -1634,17 +1634,54 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
     items = seedItems(); IMG.clear(); DB.clear().catch(() => {}); save(); toast("Boshlang‘ich ro‘yxat tiklandi");
   }
 });
+/* Zaxira faylni mavjud ro‘yxatga qo‘shish (sof funksiya: items va IMG ga tegmaydi) */
+function mergeBackup(mine, incoming) {
+  const out = mine.map((m) => ({ ...m }));
+  const images = new Map();
+  const byId = new Map(out.map((m) => [m.id, m]));
+  const byKey = new Map();
+  out.forEach((m) => keysOf(m).forEach((k) => { if (!byKey.has(k)) byKey.set(k, m); }));
+  const taken = new Set(out.map((m) => m.id));
+  let added = 0, updated = 0, kept = 0, order = out.reduce((n, m) => Math.max(n, m.order || 0), 0);
+  for (const { img, ...inc } of incoming) {
+    const m = byId.get(inc.id) || keysOf(inc).map((k) => byKey.get(k)).find(Boolean);
+    if (m) {
+      if (inc.updated > m.updated) {
+        Object.assign(m, inc, { id: m.id, order: m.order }); updated++;
+        if (img) images.set(m.id, img);
+      } else {
+        kept++;
+        if (img && !IMG.has(m.id) && !images.has(m.id)) images.set(m.id, img);
+      }
+      continue;
+    }
+    const id = taken.has(inc.id) ? uid() : inc.id;
+    const it = { ...inc, id, order: ++order };
+    out.push(it); taken.add(id); byId.set(id, it);
+    keysOf(it).forEach((k) => { if (!byKey.has(k)) byKey.set(k, it); });
+    if (img) images.set(id, img);
+    added++;
+  }
+  return { items: out, images, added, updated, kept };
+}
 $("#fileIn").addEventListener("change", async (e) => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try {
     const data = parseBackup(await f.text());
-    if (!await askSheet({
-      title: `${data.length} ta yozuv yuklansinmi?`, text: "Hozirgi ro‘yxat almashtiriladi.",
-      options: [{ value: "ok", label: "Ha, yuklash", tone: "primary" }],
-    })) return;
-    IMG.clear(); await DB.clear().catch(() => {});
-    items = data.map(({ img, ...it }) => { if (img) setImage(it.id, img); return it; });
-    save(); toast("Yuklandi");
+    const how = await askSheet({
+      title: `${data.length} ta yozuvli zaxira fayl`,
+      text: "Yangilash — ikkala qurilmadagi yozuvlar birlashadi, yangiroq o‘zgarish olinadi. Almashtirish — bu qurilmadagi ro‘yxat o‘chib, fayldagi bilan almashtiriladi.",
+      options: [{ value: "merge", label: "Yangilash (birlashtirish)", tone: "primary" }, { value: "replace", label: "Almashtirish", tone: "danger" }],
+    });
+    if (how === "merge") {
+      const r = mergeBackup(items, data);
+      items = r.items; r.images.forEach((src, id) => setImage(id, src));
+      save(); toast(`Yangilandi: +${r.added} yangi, ${r.updated} ta yangilandi. O‘chirilganlar ko‘chmaydi.`, { ms: 6000 });
+    } else if (how === "replace") {
+      IMG.clear(); await DB.clear().catch(() => {});
+      items = data.map(({ img, ...it }) => { if (img) setImage(it.id, img); return it; });
+      save(); toast("Yuklandi");
+    }
   } catch { toast("Bu fayl mos emas — shu ilovadan olingan zaxira faylni tanlang.", { ms: 5000 }); }
 });
 

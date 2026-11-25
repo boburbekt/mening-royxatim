@@ -6,12 +6,12 @@ test('eski va yangi zaxira fayl', async ({ page }) => {
   await fresh(page);
   const old = [{ id: 'o1', order: 1, title: 'Naruto', uz: 'Naruto', type: 'Anime', status: 'done', rating: 8, progress: '', note: '', updated: 0 }];
   await page.setInputFiles('#fileIn', { name: 'eski.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(old)) });
-  await page.locator('#ask').getByRole('button', { name: 'Ha, yuklash' }).click();
+  await page.locator('#ask').getByRole('button', { name: 'Almashtirish' }).click();
   const it = await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1'])[0]);
   expect(it).toMatchObject({ doneAt: 0, total: 0, epMin: 0, genres: [], tier: '' });
   const neu = [{ ...old[0], doneAt: 1767225600000, total: 220, epMin: 23, genres: ['Action', 1, 'Comedy'], tier: 'Z' }];
   await page.setInputFiles('#fileIn', { name: 'yangi.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(neu)) });
-  await page.locator('#ask').getByRole('button', { name: 'Ha, yuklash' }).click();
+  await page.locator('#ask').getByRole('button', { name: 'Almashtirish' }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1'])[0]))
     .toMatchObject({ doneAt: 1767225600000, total: 220, epMin: 23, genres: ['Action', 'Comedy'], tier: '' });
 });
