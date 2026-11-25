@@ -90,3 +90,50 @@ test('birlashtirish: meniki qolganda tier bo‘sh bo‘lsa fayldagi tier olinadi
   await merged(page, [base({ id: 'm1', uz: 'Naruto', updated: 50, tier: 'S' }), base({ id: 'm2', uz: 'Bleach', updated: 50, tier: 'A' })]);
   expect(await page.evaluate(() => items.map((x) => x.tier))).toEqual(['S', 'B']);
 });
+
+test('birlashtirish: yangiroq fayl bo‘sh maydonlari mening tier/total/epMin/janr/doneAt ni o‘chirmaydi', async ({ page }) => {
+  await seedItems(page, [
+    base({ id: 'm1', uz: 'Naruto', tier: 'S', total: 28, epMin: 24, genres: ['Drama'], doneAt: 111, updated: 100 }),
+    base({ id: 'm2', order: 2, uz: 'Bleach', tier: 'A', total: 10, doneAt: 222, updated: 100 })]);
+  await page.goto('/');
+  await merged(page, [
+    base({ id: 'm1', uz: 'Naruto', rating: 9, updated: 200 }),
+    base({ id: 'm2', uz: 'Bleach', status: 'watching', tier: 'B', total: 12, epMin: 20, genres: ['Action'], updated: 200 })]);
+  const v = await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).map(({ rating, tier, total, epMin, genres, doneAt, status }) => ({ rating, tier, total, epMin, genres, doneAt, status })));
+  expect(v).toEqual([
+    { rating: 9, tier: 'S', total: 28, epMin: 24, genres: ['Drama'], doneAt: 111, status: 'done' },
+    { rating: 0, tier: 'B', total: 12, epMin: 20, genres: ['Action'], doneAt: 0, status: 'watching' }]);
+});
+
+const evilId = 'q"><img src=x onerror="window.__xss=1">';
+const evilOrder = '1<img src=x onerror=window.__xss=2>';
+for (const how of ['Yangilash (birlashtirish)', 'Almashtirish']) {
+  test(`zaxiradagi id va order HTML sifatida ishlamaydi (${how})`, async ({ page }) => {
+    await fresh(page);
+    await send(page, [base({ id: evilId, order: evilOrder, uz: 'Xavfli yozuv', updated: 5 })]);
+    await page.locator('#ask').getByRole('button', { name: how }).click();
+    await expect(page.locator('#toast')).toHaveClass(/show/);
+    await page.reload();
+    for (const view of ['list', 'grid']) {
+      await page.evaluate((v) => { state.view = v; renderList(); }, view);
+      await expect(page.locator('#list [data-id]', { hasText: 'Xavfli yozuv' })).toHaveCount(1);
+      await page.waitForTimeout(100);
+      expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+      expect(await page.locator('#list img[src=x]').count()).toBe(0);
+    }
+    const it = await page.evaluate(() => items.find((x) => x.uz === 'Xavfli yozuv'));
+    expect(it.id).toBe(evilId);
+    expect(Number.isInteger(it.order) && it.order > 0).toBe(true);
+    await expect(page.locator('#list [data-id]', { hasText: 'Xavfli yozuv' })).toHaveAttribute('data-id', evilId);
+  });
+}
+
+test('normalizeItem: id, order va updated tozalanadi, mavjud string id o‘zgarmaydi', async ({ page }) => {
+  await fresh(page);
+  const r = await page.evaluate(() => [
+    normalizeItem({ id: 'abc123', order: 4, uz: 'A', status: 'done', updated: 1700 }, 0),
+    normalizeItem({ id: { x: 1 }, order: '2<b>', uz: 'B', status: 'done', updated: 'x' }, 2),
+    normalizeItem({ id: '', order: -3, uz: 'C', status: 'done', updated: -5 }, 6)].map((x) => [typeof x.id, x.id.length > 0, x.order, x.updated]));
+  expect(r).toEqual([['string', true, 4, 1700], ['string', true, 3, 0], ['string', true, 7, 0]]);
+  expect(await page.evaluate(() => normalizeItem({ id: 'abc123', uz: 'A', status: 'done' }, 0).id)).toBe('abc123');
+});

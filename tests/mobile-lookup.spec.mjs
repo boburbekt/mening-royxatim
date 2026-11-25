@@ -59,3 +59,12 @@ test('qo‘lda yozilgan asl nomi va jami qismlar ustiga yozilmaydi', async ({ pa
   await expect(page.locator('#fUz')).toHaveValue('Boruto');
   expect(await page.evaluate(() => window.__metaReqs.at(-1))).toMatchObject({ variables: { search: 'Mening nomim' } });
 });
+
+test('manga taklifida "bob" yoziladi', async ({ page }) => {
+  await mockMeta(page, { anilist: [{ id: 7, title: { romaji: 'Berserk', english: 'Berserk' }, episodes: null, chapters: 201, duration: null, genres: [], startDate: { year: 1989 }, coverImage: { large: 'https://s4.anilist.co/b.png' } }] });
+  await fresh(page); await page.click('#fab');
+  await page.locator('label.opt', { hasText: 'Manga' }).click(); await page.fill('#fUz', 'Berserk');
+  await expect(page.locator('#sugg .sug')).toHaveCount(1);
+  await expect(page.locator('#sugg .sug small')).toContainText('201 bob');
+  await expect(page.locator('#sugg .sug small')).not.toContainText('qism');
+});
