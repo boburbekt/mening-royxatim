@@ -90,3 +90,8 @@ export async function mockMeta(page, { anilist = [], tvmaze = [], episodes = 0 }
   await page.route(/^https:\/\/(s4\.anilist\.co|static\.tvmaze\.com)\//, (route) =>
     route.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'image/png' }, body: PNG_1X1 }));
 }
+
+// PNG IHDR: kenglik 16–19, balandlik 20–23 baytlar (big-endian)
+export function pngSize(buf) {
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}

@@ -54,6 +54,9 @@ test('holatlar bo‘yicha: scroll 0, kesilgan yorliq 0', async ({ page }) => {
   await page.click('#sortBtn');
   await expect(page.locator('#ask')).toHaveJSProperty('open', true); await expectClean(page, 'saralash sheet’i');
   await page.locator('#ask').getByRole('button', { name: 'Bekor qilish' }).click();
+  await page.click('#menuBtn'); await page.click('[data-act=year]');
+  await expect(page.locator('#page .share-prev img')).toBeVisible(); await expectClean(page, 'yil sahifasi');
+  await page.locator('#pageClose').click(); await expect(page.locator('#page')).toHaveJSProperty('open', false);
 });
 
 test('ko‘p turli ro‘yxat holatlari: scroll 0, kesilgan yorliq 0', async ({ page }) => {

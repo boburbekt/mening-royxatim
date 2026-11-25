@@ -212,6 +212,26 @@
   #ask .ask-opts button[aria-current=true]::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
   #ask .ask-cancel{margin-top:8px;width:100%;min-height:48px}
 
+  /* ---------- Sahifa va ulashish ---------- */
+  #page{width:min(720px,100vw);height:min(92dvh,900px);max-height:none;display:none;flex-direction:column}
+  #page[open]{display:flex}
+  #page .page-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 16px;border-bottom:1px solid var(--line);flex:none}
+  #page .page-head h2{margin:0;font-size:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #pageClose{width:44px;height:44px;flex:none;display:grid;place-items:center;background:none;border:0;color:var(--text);font-size:20px;line-height:1;cursor:pointer;border-radius:10px}
+  #pageBody{flex:1;min-height:0;overflow-y:auto;padding:14px 16px calc(16px + env(safe-area-inset-bottom))}
+  .ychips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
+  .ychips button{flex:none;min-width:64px;min-height:44px;padding:0 16px;font-size:15px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;color:var(--text);cursor:pointer;font-variant-numeric:tabular-nums}
+  .ychips button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  .share-prev{display:flex;justify-content:center;margin-bottom:14px}
+  .share-prev img{display:block;max-width:100%;max-height:60dvh;width:auto;height:auto;border-radius:12px;border:1px solid var(--line)}
+  .share-load{text-align:center;color:var(--muted);font-size:13px;padding:24px 0}
+  .share-btns{display:flex;gap:10px;flex-wrap:wrap}
+  .share-btns .btn{flex:1;min-width:140px;min-height:48px;font-size:15px;text-decoration:none;color:var(--text);display:grid;place-items:center}
+  .share-btns .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+  @media (max-width:640px){
+    #page{width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0;border:0}
+  }
+
   /* ---------- Planshet ---------- */
   @media (max-width:860px){
     .row{grid-template-columns:42px minmax(0,1fr) auto 52px;grid-template-areas:"img t st rate"}
@@ -328,6 +348,7 @@
           <button class="sw" data-theme-pick="rose" style="--c:#ff5c8a" aria-label="Pushti" title="Pushti"></button>
           <button class="sw" data-theme-pick="light" style="--c:linear-gradient(135deg,#fff 50%,#6d5ce8 50%)" aria-label="Yorug‘" title="Yorug‘ (oq fon)"></button>
         </div>
+        <button data-act="year">Mening yilim — rasm</button>
         <button data-act="copy">Matn ko‘rinishida nusxalash</button>
         <button data-act="export">Zaxira faylni yuklab olish (rasmlar bilan)</button>
         <button data-act="import">Zaxira fayldan tiklash</button>
@@ -450,6 +471,10 @@
 </dialog>
 
 <dialog id="ask" aria-labelledby="askTitle"></dialog>
+<dialog id="page" aria-labelledby="pageTitle">
+  <div class="page-head"><h2 id="pageTitle"></h2><button type="button" id="pageClose" aria-label="Yopish">×</button></div>
+  <div id="pageBody"></div>
+</dialog>
 
 <div class="toast" id="toast" role="status"></div>
 
@@ -1241,6 +1266,165 @@ $("#themes").addEventListener("click", (e) => {
 });
 applyTheme(document.documentElement.dataset.theme);
 
+/* ---------- Sahifa va ulashish ---------- */
+const pageDlg = $("#page");
+let pageUrl = null; // ko‘rinish rasmining blob URL’i
+const dropPageUrl = () => { if (pageUrl) { URL.revokeObjectURL(pageUrl); pageUrl = null; } };
+function openPage({ title, body }) { // ochiq bo‘lsa sarlavha va tana almashadi (qatlam qayta ochilmaydi)
+  $("#pageTitle").textContent = title;
+  const b = $("#pageBody"); dropPageUrl();
+  if (typeof body === "string") b.innerHTML = body; else b.replaceChildren(body);
+  b.scrollTop = 0;
+  if (!pageDlg.open) { pageDlg.showModal(); openLayer(() => { pageDlg.close(); dropPageUrl(); }); }
+}
+function closePage() {
+  if (!pageDlg.open) return Promise.resolve();
+  pageDlg.close(); dropPageUrl(); return closeLayer();
+}
+pageDlg.addEventListener("cancel", (e) => { e.preventDefault(); closePage(); }); // Esc
+$("#pageClose").addEventListener("click", closePage);
+pageDlg.addEventListener("click", (e) => { if (e.target === pageDlg) closePage(); });
+
+/* Canvas’ni sahifadagi .share-out ichida ko‘rsatadi (yo‘q bo‘lsa tanaga qo‘shadi). Tugmalar blob tayyor bo‘lgach chiqadi. */
+function shareCanvas(canvas, fileName, title) {
+  let host = $("#pageBody .share-out");
+  if (!host) { host = document.createElement("div"); host.className = "share-out"; $("#pageBody").append(host); }
+  host.innerHTML = '<div class="share-load">Rasm tayyorlanmoqda…</div>';
+  dropPageUrl();
+  // toBlob brauzerda kechikishi mumkin (soniyalar), shuning uchun toDataURL → Blob
+  fetch(canvas.toDataURL("image/png")).then((r) => r.blob()).then((blob) => {
+    if (!host.isConnected) return;
+    dropPageUrl(); pageUrl = URL.createObjectURL(blob);
+    const file = new File([blob], fileName, { type: "image/png" });
+    host.innerHTML = '<div class="share-prev"><img alt="Ulashiladigan rasm"></div><div class="share-btns"></div>';
+    host.querySelector("img").src = pageUrl;
+    const btns = host.querySelector(".share-btns");
+    if (navigator.canShare?.({ files: [file] })) {
+      const sb = document.createElement("button"); sb.type = "button"; sb.className = "btn primary"; sb.textContent = "Ulashish";
+      sb.addEventListener("click", () => { navigator.share({ files: [file], title }).catch(() => {}); });
+      btns.append(sb);
+    }
+    const a = document.createElement("a"); a.className = "btn" + (btns.children.length ? "" : " primary");
+    a.href = pageUrl; a.download = fileName; a.textContent = "Yuklab olish"; a.setAttribute("role", "button");
+    btns.append(a);
+  }).catch(() => toast("Rasm tayyorlab bo‘lmadi"));
+}
+
+/* Poster canvas’ga: faqat oldindan yuklangan data: rasm chiziladi (http rasm canvas’ni bulg‘aydi), aks holda gradient + bosh harflar */
+const coverImgs = new Map(); // data: URL → decode qilingan Image
+async function preloadCovers(list) {
+  await Promise.all(list.map(async (it) => {
+    const src = IMG.get(it.id);
+    if (!src || !src.startsWith("data:") || coverImgs.has(src)) return;
+    try { const im = new Image(); im.src = src; await im.decode(); coverImgs.set(src, im); } catch {}
+  }));
+}
+function drawCover(ctx, it, x, y, w, h) {
+  const im = coverImgs.get(IMG.get(it.id));
+  ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, 20); ctx.clip();
+  if (im) {
+    const k = Math.max(w / im.naturalWidth, h / im.naturalHeight), dw = im.naturalWidth * k, dh = im.naturalHeight * k;
+    ctx.drawImage(im, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  } else {
+    const hu = hue(it.uz || it.title), g = ctx.createLinearGradient(x, y, x + w, y + h);
+    g.addColorStop(0, `hsl(${hu} 55% 38%)`); g.addColorStop(1, `hsl(${(hu + 40) % 360} 55% 22%)`);
+    ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "#fffc"; ctx.font = `700 ${Math.round(h / 4)}px system-ui,sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(initials(it.uz || it.title), x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+}
+function wrapText(ctx, text, maxW, maxLines) { // canvas matni: maxLines qatorgacha, oxirgisi "…" bilan
+  const words = String(text || "").split(/\s+/).filter(Boolean), lines = [];
+  let cur = "";
+  for (let i = 0; i < words.length; i++) {
+    const t = cur ? cur + " " + words[i] : words[i];
+    if (ctx.measureText(t).width <= maxW) { cur = t; continue; }
+    if (cur) lines.push(cur);
+    cur = words[i];
+    if (lines.length === maxLines) break;
+  }
+  if (cur && lines.length < maxLines) lines.push(cur);
+  const rest = words.join(" ").length > lines.join(" ").length;
+  if (rest || lines.length > maxLines) { lines.length = Math.min(lines.length, maxLines); }
+  const last = lines.length - 1;
+  if (last >= 0) {
+    let l = lines[last]; const cut = rest;
+    while (l && (ctx.measureText(l + (cut ? "…" : "")).width > maxW)) l = l.slice(0, -1).trimEnd();
+    lines[last] = l + (cut ? "…" : "");
+  }
+  return lines;
+}
+
+/* ---------- Mening yilim ---------- */
+const GENRE_UZ = { Action: "Jangari", Adventure: "Sarguzasht", Comedy: "Komediya", Drama: "Drama", Fantasy: "Fantastika", Romance: "Romantika", "Sci-Fi": "Ilmiy fantastika", "Slice of Life": "Kundalik hayot", Mystery: "Sirli", Horror: "Qo‘rqinchli", Psychological: "Psixologik", Sports: "Sport", Supernatural: "G‘ayritabiiy", Thriller: "Triller", Mecha: "Mexa", Music: "Musiqa", Crime: "Jinoyat" };
+const yearOf = (ms) => new Date(ms).getFullYear();
+const mostCommon = (arr) => { const m = new Map(); arr.forEach((v) => m.set(v, (m.get(v) || 0) + 1)); let best = "", n = 0; m.forEach((c, v) => { if (c > n) { best = v; n = c; } }); return best; };
+function yearStats(list, year) {
+  let done = list.filter((it) => it.status === "done" && it.doneAt && yearOf(it.doneAt) === year), mode = "year";
+  if (!done.length) { done = list.filter((it) => it.status === "done"); mode = "all"; }
+  const minutes = done.reduce((a, it) => a + (it.total > 0 && it.epMin > 0 ? it.total * it.epMin : 0), 0);
+  const rated = done.filter((it) => it.rating > 0);
+  const avg = rated.length ? Math.round(rated.reduce((a, it) => a + it.rating, 0) / rated.length * 10) / 10 : 0;
+  const top = [...done].sort((a, b) => b.rating - a.rating || (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 3);
+  const g = mostCommon(done.flatMap((it) => it.genres || []));
+  return { mode, year, count: done.length, hours: Math.round(minutes / 60), avg, top, genre: g ? GENRE_UZ[g] || g : "", byType: mostCommon(done.map((it) => it.type)) };
+}
+// Rasm decode bo‘lishini kutadi, shuning uchun Promise<HTMLCanvasElement> qaytaradi
+async function drawYearCard(s) {
+  await preloadCovers(s.top);
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const ctx = c.getContext("2d"), cs = getComputedStyle(document.body), v = (n) => cs.getPropertyValue(n).trim();
+  const F = (wt, px) => `${wt} ${px}px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`;
+  ctx.fillStyle = v("--bg"); ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, 520, 40, W / 2, 520, 760);
+  glow.addColorStop(0, v("--accent") + "44"); glow.addColorStop(1, v("--accent") + "00");
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = v("--text"); ctx.font = F(700, 68);
+  ctx.fillText(s.mode === "year" ? `Mening ${s.year}-yilim` : "Mening ro‘yxatim — umumiy", W / 2, 190);
+  ctx.fillStyle = v("--accent"); ctx.font = F(800, 340); ctx.fillText(String(s.count), W / 2, 560);
+  ctx.fillStyle = v("--muted"); ctx.font = F(500, 54); ctx.fillText(s.mode === "year" ? "ta tugatildi" : "ta ko‘rilgan", W / 2, 650);
+  const blocks = [s.hours > 0 && `${s.hours} soat`, s.avg > 0 && `⌀ ${s.avg.toFixed(1)}`, s.byType].filter(Boolean);
+  const bw = 296, bh = 130, gap = 24, bx0 = (W - (blocks.length * bw + (blocks.length - 1) * gap)) / 2;
+  blocks.forEach((t, i) => {
+    const x = bx0 + i * (bw + gap);
+    ctx.fillStyle = v("--panel"); ctx.beginPath(); ctx.roundRect(x, 730, bw, bh, 28); ctx.fill();
+    ctx.strokeStyle = v("--line"); ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = v("--text"); ctx.font = F(700, 44); ctx.textBaseline = "middle"; ctx.fillText(t, x + bw / 2, 730 + bh / 2); ctx.textBaseline = "alphabetic";
+  });
+  if (s.top.length) {
+    ctx.fillStyle = v("--text"); ctx.font = F(700, 48); ctx.fillText("Eng zo‘rlari", W / 2, 990);
+    const pw = 280, ph = 420, pg = 60, x0 = (W - (s.top.length * pw + (s.top.length - 1) * pg)) / 2;
+    s.top.forEach((it, i) => {
+      const x = x0 + i * (pw + pg);
+      drawCover(ctx, it, x, 1030, pw, ph);
+      ctx.fillStyle = v("--text"); ctx.font = F(600, 32);
+      wrapText(ctx, it.uz || it.title, pw, 2).forEach((l, k) => ctx.fillText(l, x + pw / 2, 1500 + k * 40));
+      if (it.rating) { ctx.fillStyle = v("--accent"); ctx.font = F(800, 40); ctx.fillText(`${it.rating}/10`, x + pw / 2, 1610); }
+    });
+  }
+  if (s.genre) { ctx.fillStyle = v("--text"); ctx.font = F(600, 50); ctx.fillText(`Sevimli janr: ${s.genre}`, W / 2, 1745); }
+  ctx.fillStyle = v("--muted"); ctx.font = F(500, 36); ctx.fillText("Mening ro‘yxatim", W / 2, 1850);
+  return c;
+}
+function openYearPage() {
+  const cur = new Date().getFullYear();
+  const years = [...new Set([cur, ...items.filter((it) => it.doneAt).map((it) => yearOf(it.doneAt))])].sort((a, b) => b - a);
+  const body = document.createElement("div");
+  body.innerHTML = `<div class="ychips" role="group" aria-label="Yil">${years.map((y) => `<button type="button" data-y="${y}">${y}</button>`).join("")}</div><div class="share-out"></div>`;
+  let token = 0;
+  const pick = async (y) => {
+    const my = ++token;
+    body.querySelectorAll("[data-y]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.y === y)));
+    const canvas = await drawYearCard(yearStats(items, y));
+    if (my === token && body.isConnected) shareCanvas(canvas, `mening-yilim-${y}.png`, "Mening yilim");
+  };
+  body.querySelector(".ychips").addEventListener("click", (e) => { const b = e.target.closest("[data-y]"); if (b) pick(+b.dataset.y); });
+  openPage({ title: "Mening yilim", body });
+  pick(cur);
+}
+
 /* ---------- Menyu: nusxa, eksport, import ---------- */
 $("#menuBtn").addEventListener("click", (e) => { e.stopPropagation(); $("#menu").classList.toggle("open"); });
 document.addEventListener("click", () => $("#menu").classList.remove("open"));
@@ -1259,6 +1443,7 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
     a.download = `mening-royxatim-${new Date().toISOString().slice(0, 10)}.json`;
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("Fayl saqlandi");
   }
+  if (act === "year") openYearPage();
   if (act === "import") $("#fileIn").click();
   if (act === "reset" && await askSheet({
     title: "Boshlang‘ich ro‘yxatga qaytarilsinmi?", text: "Hozirgi ro‘yxat va rasmlar o‘chadi. Avval zaxira fayl oling.",
