@@ -66,7 +66,7 @@
   .dist{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-end;gap:4px;height:90px}
   .dist .lbl{color:var(--muted);font-size:12px;align-self:center;margin-right:8px;width:70px;flex:none}
   .bar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;height:100%;justify-content:flex-end;background:none;border:0;padding:0}
-  .bar i{display:block;width:100%;max-width:38px;background:var(--line);border-radius:5px 5px 2px 2px;min-height:2px}
+  .bar i{display:block;width:100%;max-width:38px;height:calc(var(--p) * 46px);background:var(--line);border-radius:5px 5px 2px 2px;min-height:2px}
   .bar.active i,.bar:hover i{background:var(--accent)}
   .bar span{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 
@@ -82,7 +82,8 @@
   .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
   .chip.active{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
   .count{color:var(--muted);font-size:13px;margin:0 0 8px 2px}
-  .count a{color:var(--accent)}
+  .clear{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline}
+  .stats-btn,.sort-btn,#tabs,.avg-line{display:none}
   .hint{color:var(--muted);font-size:12px}
 
   /* ---------- Ro‘yxat ko‘rinishi ---------- */
@@ -200,14 +201,41 @@
     #addBtn{display:none}
     .fab{display:grid;place-items:center;position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:30px;line-height:1;border:0;box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 40%,transparent);z-index:30;cursor:pointer}
     .toast{bottom:calc(92px + env(safe-area-inset-bottom))}
+    header{margin-bottom:10px;gap:8px}
+    header h1{min-width:0}
+    header .btn{min-height:44px;min-width:44px;padding:0 10px}
+    .stats-btn{display:block;min-height:44px;min-width:44px;padding:0 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:15px;white-space:nowrap;cursor:pointer;font-variant-numeric:tabular-nums}
+    .stats-btn[aria-expanded=true]{border-color:var(--accent);color:var(--text)}
+    #overview:not(.open){display:none}
+    #overview{margin-bottom:10px}
+    #stats{display:none}
+    .avg-line{display:block;margin:0 0 8px 2px;color:var(--muted);font-size:13px}
+    .dist{display:grid;grid-auto-flow:column;grid-template-rows:repeat(5,44px);grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;height:auto;margin-bottom:0;padding:4px 12px}
+    .bar{display:grid;grid-template-columns:20px minmax(0,1fr) 24px;grid-template-areas:"n t c";align-items:center;gap:6px;height:44px;text-align:left}
+    .bar span{font-size:12px}
+    .bar span:first-child{grid-area:c;text-align:right}
+    .bar span:last-child{grid-area:n}
+    .bar i{grid-area:t;width:calc(var(--p) * 100%);max-width:none;height:10px;min-height:0;min-width:2px;justify-self:start;border-radius:5px}
+    #tabs{display:flex;position:sticky;top:0;z-index:10;background:var(--bg);overflow-x:auto;scrollbar-width:none;margin:0 -12px 4px;padding:0 12px;gap:4px}
+    #tabs::-webkit-scrollbar{display:none}
+    #tabs button{flex:none;min-height:44px;padding:0 12px;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font-size:15px;white-space:nowrap;cursor:pointer;font-variant-numeric:tabular-nums}
+    #tabs button[aria-selected=true]{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+    #tabs button:focus-visible,.stats-btn:focus-visible,.sort-btn:focus-visible,.clear:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+    .sort-btn{display:grid;place-items:center;width:44px;min-height:44px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--text);cursor:pointer;padding:0}
+    #sort{display:none}
+    .views button{min-width:44px;min-height:44px;padding:0 8px;font-size:16px}
+    .views .vt{display:none}
+    .count:not(.has-f){display:none}
+    .count{display:flex;align-items:center;flex-wrap:wrap;gap:0 6px;margin:0 0 4px 2px}
+    .clear{min-height:44px;min-width:44px;padding:0 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;text-decoration:none;font-size:15px}
+    .empty .clear{margin-top:12px}
     #ask{width:100vw;margin:auto 0 0;border-radius:18px 18px 0 0;border-bottom:0}
     .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
     .stat b{font-size:19px}
     .stat small{font-size:12px}
-    .dist{height:80px}
     .dist .lbl{display:none}
-    .toolbar{grid-template-columns:minmax(0,1fr) auto}
-    .toolbar #q{grid-column:1/-1}
+    .toolbar{grid-template-columns:minmax(0,1fr) auto auto;margin-bottom:8px}
+    .toolbar .field{min-height:44px}
     .row{grid-template-columns:42px minmax(0,1fr) auto;grid-template-areas:"img t rate" "img st rate";row-gap:4px;padding:8px 10px}
     .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
     .card .name{font-size:12.5px}
@@ -233,6 +261,7 @@
 <div class="wrap">
   <header>
     <h1>Mening <span>ro‘yxatim</span></h1>
+    <button class="stats-btn" id="statsBtn" aria-expanded="false" aria-controls="overview" aria-label="Statistika">⌀ —</button>
     <button class="btn primary" id="addBtn" title="Yangi qo‘shish (N)">+ Qo‘shish</button>
     <div class="menu" id="menu">
       <button class="btn" id="menuBtn" aria-label="Boshqa amallar">⋯</button>
@@ -255,8 +284,11 @@
     <input type="file" id="fileIn" accept="application/json,.json" hidden>
   </header>
 
-  <section class="stats" id="stats"></section>
-  <section class="dist" id="dist"></section>
+  <section id="overview">
+    <p class="avg-line" id="avgLine"></p>
+    <section class="stats" id="stats"></section>
+    <section class="dist" id="dist"></section>
+  </section>
 
   <div class="toolbar">
     <input type="search" class="field" id="q" placeholder="Qidirish…" title="Tezkor tugma: /" enterkeyhint="search">
@@ -267,11 +299,13 @@
       <option value="name">Nomi (A–Z)</option>
       <option value="recent">Oxirgi o‘zgargan</option>
     </select>
+    <button class="sort-btn" id="sortBtn" aria-label="Saralash"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg></button>
     <div class="views" id="views">
-      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi">☰ Ro‘yxat</button>
-      <button data-view="grid" aria-label="Poster ko‘rinishi">▦ Poster</button>
+      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi">☰<span class="vt"> Ro‘yxat</span></button>
+      <button data-view="grid" aria-label="Poster ko‘rinishi">▦<span class="vt"> Poster</span></button>
     </div>
   </div>
+  <nav id="tabs" role="tablist" aria-label="Holat"></nav>
   <div class="chips" id="types"></div>
 
   <p class="count" id="count"></p>
@@ -611,6 +645,8 @@ function renderStats() {
     ["plan", STATUS.plan, n("plan"), STATUS_COLOR.plan],
   ];
   if (n("dropped")) tiles.push(["dropped", STATUS.dropped, n("dropped"), STATUS_COLOR.dropped]);
+  $("#statsBtn").textContent = "⌀ " + avg;
+  $("#avgLine").textContent = "O‘rtacha baho " + avg;
   $("#stats").innerHTML = tiles.map(([k, l, v, c]) =>
     `<button class="stat ${state.status === k ? "active" : ""}" data-st="${k}"><b>${v}</b><small><span class="dot" style="background:${c}"></span>${l}</small></button>`
   ).join("") + `<div class="stat static"><b>${avg}</b><small>O‘rtacha baho</small></div>`;
@@ -618,8 +654,19 @@ function renderStats() {
   const counts = Array.from({ length: 10 }, (_, i) => pool.filter((it) => it.rating === i + 1).length);
   const max = Math.max(1, ...counts);
   $("#dist").innerHTML = `<div class="lbl">Baholar taqsimoti</div>` + counts.map((c, i) =>
-    `<button class="bar ${state.rating === i + 1 ? "active" : ""}" data-r="${i + 1}" aria-label="${i + 1}/10 — ${c} ta"><span>${c || ""}</span><i style="height:${(c / max) * 46}px"></i><span>${i + 1}</span></button>`
+    `<button class="bar ${state.rating === i + 1 ? "active" : ""}" data-r="${i + 1}" aria-label="${i + 1}/10 — ${c} ta"><span>${c || ""}</span><i style="--p:${c / max}"></i><span>${i + 1}</span></button>`
   ).join("");
+}
+
+function renderTabs() {
+  const pool = items.filter((it) => state.type === "all" || it.type === state.type);
+  const n = (st) => pool.filter((it) => it.status === st).length;
+  const tabs = [["all", "Hammasi", pool.length], ["done", STATUS.done, n("done")], ["watching", STATUS.watching, n("watching")], ["plan", STATUS.plan, n("plan")]];
+  if (n("dropped")) tabs.push(["dropped", STATUS.dropped, n("dropped")]);
+  if (!tabs.some(([k]) => k === state.status)) state.status = "all";
+  $("#tabs").innerHTML = tabs.map(([k, l, v]) =>
+    `<button role="tab" data-st="${k}" aria-selected="${state.status === k}">${l} ${v}</button>`).join("");
+  $("#tabs [aria-selected=true]").scrollIntoView({ inline: "nearest", block: "nearest" });
 }
 
 function renderTypes() {
@@ -641,11 +688,12 @@ function renderList() {
   if (state.status !== "all") filters.push(STATUS[state.status]);
   if (state.rating) filters.push(state.rating + "/10");
   if (state.q) filters.push("“" + state.q + "”");
-  $("#count").innerHTML = `${rows.length} ta` + (filters.length ? ` · ${esc(filters.join(", "))} · <a href="#" id="clearF">tozalash</a>` : "");
+  $("#count").innerHTML = `${rows.length} ta` + (filters.length ? ` · ${esc(filters.join(", "))} · <button type="button" class="clear">Tozalash</button>` : "");
+  $("#count").classList.toggle("has-f", !!(state.q || state.rating));
   document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
 
   const box = $("#list");
-  if (!rows.length) { box.className = ""; box.innerHTML = `<div class="empty">Hech narsa topilmadi.</div>`; return; }
+  if (!rows.length) { box.className = ""; box.innerHTML = `<div class="empty">Hech narsa topilmadi.${filters.length ? `<br><button type="button" class="clear">Filtrni tozalash</button>` : ""}</div>`; return; }
 
   if (state.view === "grid") {
     box.className = "grid";
@@ -681,7 +729,7 @@ function renderList() {
   }).join("");
 }
 
-function render() { renderStats(); renderTypes(); renderList(); }
+function render() { renderStats(); renderTabs(); renderTypes(); renderList(); }
 
 /* ---------- Ro‘yxatdagi hodisalar ---------- */
 $("#q").addEventListener("input", (e) => { state.q = e.target.value; renderList(); });
@@ -702,9 +750,21 @@ $("#types").addEventListener("click", (e) => {
   const b = e.target.closest("[data-type]"); if (!b) return;
   state.type = b.dataset.type; render();
 });
-$("#count").addEventListener("click", (e) => {
-  if (e.target.id !== "clearF") return;
-  e.preventDefault(); state.status = "all"; state.rating = 0; state.q = ""; $("#q").value = ""; render();
+function clearFilters() { state.status = "all"; state.rating = 0; state.q = ""; $("#q").value = ""; render(); }
+$("#count").addEventListener("click", (e) => { if (e.target.closest(".clear")) clearFilters(); });
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-st]"); if (!b) return;
+  state.status = b.dataset.st; render();
+});
+$("#statsBtn").addEventListener("click", () => {
+  const open = $("#overview").classList.toggle("open");
+  $("#statsBtn").setAttribute("aria-expanded", open);
+});
+$("#sortBtn").addEventListener("click", async () => {
+  const opts = [...$("#sort").options].map((o) => ({ value: o.value, label: o.textContent, current: o.value === state.sort }));
+  const v = await askSheet({ title: "Saralash", options: opts });
+  if (v == null) return;
+  state.sort = v; $("#sort").value = v; renderList();
 });
 const findItem = (el) => items.find((x) => x.id === el.closest("[data-id]")?.dataset.id);
 $("#list").addEventListener("change", (e) => {
@@ -713,6 +773,7 @@ $("#list").addEventListener("change", (e) => {
   it.status = e.target.value; it.updated = Date.now(); save(); toast(`“${it.uz}” → ${STATUS[it.status]}`);
 });
 $("#list").addEventListener("click", (e) => {
+  if (e.target.closest(".clear")) { clearFilters(); return; }
   if (e.target.closest("select")) return;
   const it = e.target.closest("[data-id]") && findItem(e.target);
   if (it) openDialog(it);

@@ -37,6 +37,9 @@ test('desktop tuzilmasi o‘zgarmagan', async ({ page }) => {
   await expect(page.locator('#dist .bar')).toHaveCount(10);
   for (const s of ['#stats', '#dist', '#sort', '#addBtn']) await expect(page.locator(s)).toBeVisible();
   await expect(page.locator('#fab')).toBeHidden();
+  for (const s of ['#tabs', '#statsBtn', '#sortBtn']) await expect(page.locator(s)).toBeHidden();
+  const barH = await page.locator('#dist .bar i').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(barH).toEqual([2, 2, 2, 3, 3, 20, 30, 30, 30, 30]);   // eski inline px balandliklar bilan bir xil
   const cols = await page.locator('#list .row').first().evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
   expect(cols).toBe(6);
   expect(await overflowX(page)).toBeLessThanOrEqual(0);
