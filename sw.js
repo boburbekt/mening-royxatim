@@ -1,4 +1,4 @@
-const CACHE = "royxat-v1";
+const CACHE = "royxat-v2";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest",
   "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
