@@ -587,42 +587,67 @@ const cover = (it) => IMG.has(it.id)
 function toast(msg, { ms, action } = {}) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
   t.classList.toggle("act", !!action);
+  let b = null;
   if (action) {
-    const b = document.createElement("button"); b.type = "button"; b.textContent = action.label;
-    b.addEventListener("click", () => { clearTimeout(toast._t); t.classList.remove("show"); action.run(); });
+    b = document.createElement("button"); b.type = "button"; b.textContent = action.label;
+    b.addEventListener("click", () => { clearTimeout(toast._t); hide(); action.run(); });
     t.append(b);
   }
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms || (action ? 5000 : 1900));
+  // Yashirilganda amal tugmasi o‘chiriladi: muddat o‘tgach klaviatura bilan ham bosilmasin
+  const hide = () => { t.classList.remove("show"); if (b) { b.disabled = true; setTimeout(() => b.remove(), 250); } };
+  clearTimeout(toast._t); toast._t = setTimeout(hide, ms || (action ? 5000 : 1900));
 }
 
-/* ---------- Oyna qatlamlari: Android "orqaga" tugmasi oynani yopadi ---------- */
-const layers = []; let skipPop = 0;
+/* ---------- Oyna qatlamlari: Android "orqaga" tugmasi oynani yopadi ----------
+   Har qatlam bitta history yozuvi ({layer: chuqurlik}). closeLayer() history.back() qiladi va
+   o‘sha back yetib kelganda (popstate) bajariladigan Promise qaytaradi. Back hali yetib kelmagan
+   paytda ochilgan qatlam pushState’ni back’dan keyinga qoldiradi — aks holda navbatdagi back
+   yangi yozuvni yeb qo‘yadi va keyingi "orqaga" ilovadan chiqarib yuboradi. */
+const layers = [];        // { onBack, pushed }
+let backWaits = [];       // closeLayer() kutayotgan popstate’lar
+let backLanded = Promise.resolve();
 function openLayer(onBack) {
-  layers.push(onBack); history.pushState({ layer: layers.length }, "");
+  const l = { onBack, pushed: false }; layers.push(l);
+  const push = () => {
+    if (!layers.includes(l) || l.pushed) return; // push’dan oldin yopilgan
+    l.pushed = true; history.pushState({ layer: layers.indexOf(l) + 1 }, "");
+  };
+  if (backWaits.length) backLanded.then(push); else push();
 }
 function closeLayer() { // oyna ilovaning o‘zida yopilganda: ortiqcha history yozuvi qolmasin
-  if (!layers.length) return;
-  layers.pop(); skipPop++; history.back();
+  const l = layers.pop();
+  if (!l?.pushed) return Promise.resolve();
+  const p = new Promise((resolve) => {
+    const done = () => { clearTimeout(t); backWaits = backWaits.filter((f) => f !== done); resolve(); };
+    const t = setTimeout(done, 500); // oldingi yozuv bo‘lmasa back hech narsa qilmaydi
+    backWaits.push(done);
+  });
+  backLanded = p; history.back();
+  return p;
 }
 window.addEventListener("popstate", () => {
-  if (skipPop) { skipPop--; return; }
-  const back = layers.pop(); if (back) back();
+  if (backWaits.length) { backWaits[0](); return; }
+  // Foydalanuvchining "orqaga"si: history chuqurligidan yuqoridagi qatlamlarni yopamiz.
+  // Kechikkan o‘z back’imiz (taymerdan keyin) chuqurlikka mos keladi va hech narsani yopmaydi.
+  const depth = history.state?.layer || 0;
+  while (layers.length > depth && layers.at(-1).pushed) layers.pop().onBack();
 });
 
-/* Tasdiqlash / tanlash oynasi: mobilda pastdan, desktopda markazda */
+/* Tasdiqlash / tanlash oynasi: mobilda pastdan, desktopda markazda.
+   Natija oyna yopilib, history back yetib kelgandan keyin qaytadi — keyingi oyna xavfsiz ochiladi. */
 let askDone = null;
-function askSheet({ title, text, options, cancelLabel = "Bekor qilish" }) {
-  askDone?.(null, true);
+async function askSheet({ title, text, options, cancelLabel = "Bekor qilish" }) {
+  if (askDone) await askDone(null, true);
   const d = $("#ask");
   d.innerHTML = `<h2 id="askTitle">${esc(title)}</h2>${text ? `<p>${esc(text)}</p>` : ""}
     <div class="ask-opts">${options.map((o) => `<button type="button" data-v="${esc(o.value)}"${o.tone ? ` class="${o.tone}"` : ""}${o.current ? ' aria-current="true"' : ""}>${esc(o.label)}</button>`).join("")}</div>
     <button type="button" class="btn ask-cancel" data-cancel>${esc(cancelLabel)}</button>`;
   return new Promise((resolve) => {
-    askDone = (v, viaUI) => { askDone = null; d.close(); if (viaUI) closeLayer(); resolve(v); };
+    askDone = async (v, viaUI) => { askDone = null; d.close(); if (viaUI) await closeLayer(); resolve(v); };
     d.onclick = (e) => {
       const b = e.target.closest("button");
-      if (b) askDone(b.hasAttribute("data-cancel") ? null : b.dataset.v, true);
-      else if (e.target === d) askDone(null, true);
+      if (b) askDone?.(b.hasAttribute("data-cancel") ? null : b.dataset.v, true);
+      else if (e.target === d) askDone?.(null, true);
     };
     d.oncancel = (e) => { e.preventDefault(); askDone?.(null, true); };
     openLayer(() => askDone?.(null, false));
@@ -636,11 +661,14 @@ function removeItem(it) {
   items = items.filter((x) => x !== it);
   items.forEach((x) => { if (x.order > gone) x.order--; });
   IMG.delete(it.id); // IndexedDB’dan faqat bekor qilish vaqti o‘tgach o‘chadi
-  let undone = false;
-  setTimeout(() => { if (!undone) DB.del(it.id).catch(() => {}); }, 5500);
+  let undone = false, purged = false;
+  setTimeout(() => {
+    if (undone) return; purged = true; // shundan keyin restore() hech narsa qilmaydi
+    if (!items.some((x) => x.id === it.id)) DB.del(it.id).catch(() => {}); // qayta yuklangan yozuv rasmi qolsin
+  }, 5500);
   save();
   return () => {
-    if (undone) return; undone = true;
+    if (undone || purged) return; undone = true;
     items.forEach((x) => { if (x.order >= gone) x.order++; });
     items.splice(Math.min(idx, items.length), 0, it);
     if (img) IMG.set(it.id, img);
@@ -817,7 +845,7 @@ const findItem = (el) => items.find((x) => x.id === el.closest("[data-id]")?.dat
 async function pickStatus(it) {
   const options = [...Object.entries(STATUS).map(([value, label]) => ({ value, label, current: value === it.status })),
     { value: "edit", label: "Tahrirlash" }];
-  const v = await askSheet({ title: it.uz, options });
+  const v = await askSheet({ title: it.uz || it.title, options });
   if (v == null) return;
   if (v === "edit") { openDialog(it); return; }
   if (v === it.status) return;
@@ -968,7 +996,7 @@ function openDialog(it) {
   $(".sheet-body").scrollTop = 0;
   if (!it || matchMedia("(min-width:641px)").matches) form.uz.focus();
 }
-const closeDialog = () => { if (dlg.open) { dlg.close(); closeLayer(); } };
+const closeDialog = () => { if (dlg.open) { dlg.close(); return closeLayer(); } return Promise.resolve(); };
 dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeDialog(); }); // Esc
 $("#addBtn").addEventListener("click", () => openDialog());
 $("#fab").addEventListener("click", () => openDialog());

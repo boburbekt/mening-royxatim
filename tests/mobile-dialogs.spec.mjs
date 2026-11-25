@@ -14,6 +14,17 @@ test('brauzer dialoglari ishlatilmaydi', async ({ page }) => {
 });
 
 test('o‘chirish va bekor qilish', async ({ page }) => {
+  const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  await page.clock.install();
+  const id = await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).find((x) => x.uz === 'Qora beda').id);
+  await page.evaluate(([id, src]) => new Promise((res, rej) => {   // rasmni IndexedDB’ga qo‘yamiz
+    const r = indexedDB.open('mening-royxatim', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('img');
+    r.onsuccess = () => { const t = r.result.transaction('img', 'readwrite'); t.objectStore('img').put(src, id); t.oncomplete = () => { r.result.close(); res(); }; t.onerror = rej; };
+  }), [id, PNG]);
+  await page.reload();
+  const cover = page.locator('#list .row', { hasText: 'Qora beda' }).locator('img.cover');
+  await expect(cover).toHaveAttribute('src', PNG);
   await page.locator('#list .row .uz', { hasText: 'Qora beda' }).click();
   await page.click('#delBtn');
   await expect(page.locator('#list .row')).toHaveCount(68);
@@ -22,6 +33,9 @@ test('o‘chirish va bekor qilish', async ({ page }) => {
   await expect(page.locator('#list .row').nth(2)).toContainText('Qora beda');
   expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).map((x) => x.order)))
     .toEqual(Array.from({ length: 69 }, (_, i) => i + 1));
+  await page.clock.runFor(6000);   // IndexedDB’dan o‘chirish muddati o‘tadi
+  await page.reload();
+  await expect(cover).toHaveAttribute('src', PNG);
 });
 
 test('yashirin toast bosilmaydi', async ({ page }) => {
@@ -69,4 +83,58 @@ test('xotira bloklanganda ilova ishga tushadi', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#list .row')).toHaveCount(69);
   await expect(page.locator('#toast')).toContainText('Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.');
+});
+
+/* ---- Holat sheet’i → Tahrirlash: history buzilmasligi kerak ---- */
+async function editViaStatusSheet(page) {
+  await page.locator('#list .row', { hasText: 'Qora beda' }).locator('[data-status]').click();
+  await page.locator('#ask').getByRole('button', { name: 'Tahrirlash' }).click();
+  await expect(page.locator('#dlg')).toHaveJSProperty('open', true);
+  await expect.poll(() => page.evaluate(() => history.state)).toEqual({ layer: 1 });
+}
+
+test('Tahrirlash’dan keyin × — ilovada qoladi', async ({ page }) => {
+  await editViaStatusSheet(page);
+  await page.click('#closeBtn');
+  await expect(page.locator('#dlg')).toHaveJSProperty('open', false);
+  await expect.poll(() => page.evaluate(() => history.state)).toBeNull();
+  await expect(page).toHaveURL(/localhost:5179\/$/);
+  await expect(page.locator('#list .row')).toHaveCount(69);
+});
+
+test('Tahrirlash’dan keyin orqaga — oyna yopiladi, ilovada qoladi', async ({ page }) => {
+  await editViaStatusSheet(page);
+  await page.goBack();
+  await expect(page.locator('#dlg')).toHaveJSProperty('open', false);
+  await expect(page).toHaveURL(/localhost:5179\/$/);
+  await expect(page.locator('#list .row')).toHaveCount(69);
+  await expect.poll(() => page.evaluate(() => history.state)).toBeNull();
+});
+
+test('Tahrirlash’dan keyin O‘chirish — bekor qilish toast’i, ilovada qoladi', async ({ page }) => {
+  await editViaStatusSheet(page);
+  await page.click('#delBtn');
+  await expect(page.locator('#toast').getByRole('button', { name: 'Bekor qilish' })).toBeVisible();
+  await expect(page).toHaveURL(/localhost:5179\/$/);
+  await expect(page.locator('#list .row')).toHaveCount(68);
+  await expect.poll(() => page.evaluate(() => history.state)).toBeNull();
+});
+
+test('askSheet varianti tanlanganda history toza', async ({ page }) => {
+  await page.locator('#list .row [data-status]').first().click();
+  await page.locator('#ask').getByRole('button', { name: 'Rejada' }).click();
+  await expect.poll(() => page.evaluate(() => history.state)).toBeNull();
+  await page.click('#sortBtn');
+  await page.locator('#ask').getByRole('button', { name: 'Nomi (A–Z)' }).click();
+  await expect.poll(() => page.evaluate(() => history.state)).toBeNull();
+  await expect(page).toHaveURL(/localhost:5179\/$/);
+});
+
+test('bekor qilish muddati o‘tgach toast tugmasi qolmaydi', async ({ page }) => {
+  await page.clock.install(); await page.reload();
+  await page.locator('#list .row .uz', { hasText: 'Qora beda' }).click();
+  await page.click('#delBtn');
+  await expect(page.locator('#toast button')).toHaveCount(1);
+  await page.clock.runFor(6000);
+  await expect(page.locator('#toast button')).toHaveCount(0);
 });
