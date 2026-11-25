@@ -1455,25 +1455,41 @@ async function drawTierCard() {
   ctx.fillText("Mening tier-listim", W / 2, 110);
   const top = 150, bottom = 60, gapY = 14, x0 = 40, lw = 120, gx = 16, areaW = W - x0 * 2 - lw - gx, g = 10;
   const avail = H - top - bottom - gapY * 3;
-  // eng katta poster o‘lchami (150×225 dan 60×90 gacha): hamma qator sig‘adigan
+  // eng katta poster o‘lchami (150×225 dan 60×90 gacha): hamma qator sig‘adigan; qator balandligi kamida 120 (harf katagi)
+  const hOf = (n, ph) => Math.max(120, Math.max(1, n) * (ph + g) - g);
   const layout = (pw) => {
     const ph = pw * 1.5, per = Math.max(1, Math.floor((areaW + g) / (pw + g)));
-    const hs = rows.map((r) => Math.max(1, Math.ceil(r[1].length / per)) * (ph + g) - g);
-    return { pw, ph, per, hs, total: hs.reduce((a, b) => a + b, 0) };
+    const lines = rows.map((r) => Math.max(1, Math.ceil(r[1].length / per)));
+    return { pw, ph, per, lines, hs: lines.map((n) => hOf(n, ph)) };
   };
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
   let L = layout(60);
-  for (let pw = 150; pw >= 60; pw -= 2) { const t = layout(pw); if (t.total <= avail) { L = t; break; } }
-  // qatorlar balandligi: kamida 120 (harf katagi), ortiqcha joy teng bo‘linadi
-  const hs = L.hs.map((h) => Math.max(h, 120)), extra = Math.max(0, avail - hs.reduce((a, b) => a + b, 0)) / 4;
+  for (let pw = 150; pw >= 60; pw -= 2) { const t = layout(pw); if (sum(t.hs) <= avail) { L = t; break; } }
+  // 60×90 ham sig‘masa: eng uzun qatordan qator kamaytiriladi, ortig‘i "+N" belgisi bilan ko‘rsatiladi
+  while (sum(L.hs) > avail) {
+    let k = -1; L.hs.forEach((h, i) => { if (L.lines[i] > 1 && (k < 0 || h > L.hs[k])) k = i; });
+    if (k < 0) break;
+    L.lines[k]--; L.hs[k] = hOf(L.lines[k], L.ph);
+  }
+  const extra = Math.max(0, avail - sum(L.hs)) / 4, info = { w: W, h: H, rows: [] };
   let y = top;
   rows.forEach(([t, list], ri) => {
-    const rh = hs[ri] + extra;
+    const rh = L.hs[ri] + extra, cap = L.lines[ri] * L.per, over = list.length > cap, shown = over ? cap - 1 : list.length;
     ctx.fillStyle = TIER_COLOR[t]; ctx.beginPath(); ctx.roundRect(x0, y, lw, rh, 18); ctx.fill();
     ctx.fillStyle = "#1a1a1a"; ctx.font = F(800, 72); ctx.textBaseline = "middle"; ctx.fillText(t, x0 + lw / 2, y + rh / 2); ctx.textBaseline = "alphabetic";
     ctx.fillStyle = v("--panel"); ctx.beginPath(); ctx.roundRect(x0 + lw + gx, y, areaW, rh, 18); ctx.fill();
-    list.forEach((it, i) => drawCover(ctx, it, x0 + lw + gx + (i % L.per) * (L.pw + g), y + Math.floor(i / L.per) * (L.ph + g), L.pw, L.ph));
+    const pos = (i) => [x0 + lw + gx + (i % L.per) * (L.pw + g), y + Math.floor(i / L.per) * (L.ph + g)];
+    list.slice(0, shown).forEach((it, i) => drawCover(ctx, it, ...pos(i), L.pw, L.ph));
+    if (over) {
+      const [bx, by] = pos(shown);
+      ctx.fillStyle = v("--panel2"); ctx.beginPath(); ctx.roundRect(bx, by, L.pw, L.ph, 20); ctx.fill();
+      ctx.fillStyle = v("--text"); ctx.font = F(800, 30); ctx.textBaseline = "middle"; ctx.fillText(`+${list.length - shown}`, bx + L.pw / 2, by + L.ph / 2); ctx.textBaseline = "alphabetic";
+    }
+    info.rows.push({ tier: t, y, h: rh, shown, more: over ? list.length - shown : 0, bottom: y + Math.max(0, Math.ceil((shown + (over ? 1 : 0)) / L.per)) * (L.ph + g) - g });
     y += rh + gapY;
   });
+  info.footerY = H - 22; info.endY = y - gapY;
+  c.tierInfo = info;
   ctx.fillStyle = v("--muted"); ctx.font = F(500, 28); ctx.textAlign = "center"; ctx.fillText("Mening ro‘yxatim", W / 2, H - 22);
   return c;
 }

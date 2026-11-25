@@ -49,3 +49,25 @@ test('tanlovni bekor qilish va havzaga qaytarish', async ({ page }) => {
   await expect(page.locator('#page .tpool .tposter')).toHaveCount(n);
   await expect(page.locator('#page .trow .tposter')).toHaveCount(0);
 });
+
+const mk = (n, rating, off) => Array.from({ length: n }, (_, i) => ({ id: `t${rating}-${off}-${i}`, order: off + i, title: `T${off + i}`, uz: `Nom ${rating}-${i}`, type: 'Anime', status: 'done', rating, progress: '', note: '', updated: 0, tier: '' }));
+async function cardInfo(page, list) {
+  const { seedItems } = await import('./helpers.mjs');
+  await seedItems(page, list); await page.goto('/');
+  return page.evaluate(async () => {
+    items.forEach((it) => { const r = it.rating; it.tier = r >= 10 ? 'S' : r === 9 ? 'A' : r >= 7 ? 'B' : 'C'; });
+    return (await drawTierCard()).tierInfo;
+  });
+}
+const within = (info) => { for (const r of info.rows) { expect(r.y + r.h).toBeLessThanOrEqual(info.footerY - 20); expect(r.bottom).toBeLessThanOrEqual(r.y + r.h + 0.5); } expect(info.endY).toBeLessThanOrEqual(info.h - 40); };
+
+test('200 yozuv: hamma qator rasm ichida, S da +N', async ({ page }) => {
+  const info = await cardInfo(page, [...mk(200, 10, 0), ...mk(3, 9, 300), ...mk(3, 7, 400), ...mk(3, 5, 500)]);
+  within(info); expect(info.rows[0].more).toBeGreaterThan(0);
+  expect(info.rows.map((r) => r.tier)).toEqual(['S', 'A', 'B', 'C']);
+});
+
+test('o‘rtacha ro‘yxat: 120px minimum hisobga olinadi', async ({ page }) => {
+  const info = await cardInfo(page, [...mk(60, 10, 0), ...mk(40, 9, 100), ...mk(2, 7, 200), ...mk(2, 5, 300)]);
+  within(info);
+});
