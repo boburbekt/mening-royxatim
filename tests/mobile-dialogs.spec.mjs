@@ -63,3 +63,10 @@ test('askSheet orqaga bilan yopiladi', async ({ page }) => {
   await expect(page.locator('#ask')).toHaveJSProperty('open', false);
   await expect(page.locator('#list .row')).toHaveCount(69);
 });
+
+test('xotira bloklanganda ilova ishga tushadi', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.clear(); Storage.prototype.setItem = () => { throw new Error('blocked'); }; });
+  await page.goto('/');
+  await expect(page.locator('#list .row')).toHaveCount(69);
+  await expect(page.locator('#toast')).toContainText('Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.');
+});

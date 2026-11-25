@@ -449,7 +449,7 @@ const seedItems = () => SEED.map((r, i) => ({
 /* ---------- Saqlash: yozuvlar localStorage’da, rasmlar IndexedDB’da ---------- */
 function store(v) {
   try { localStorage.setItem(KEY, JSON.stringify(v)); }
-  catch (e) { if (!store.warned) { store.warned = true; toast("Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.", { ms: 8000 }); } }
+  catch (e) { if (!store.warned) { store.warned = true; queueMicrotask(() => toast("Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.", { ms: 8000 })); } }
 }
 function load() {
   try {
@@ -688,7 +688,7 @@ $("#q").addEventListener("input", (e) => { state.q = e.target.value; renderList(
 $("#sort").addEventListener("change", (e) => { state.sort = e.target.value; renderList(); });
 $("#views").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]"); if (!b) return;
-  state.view = b.dataset.view; localStorage.setItem(VIEW_KEY, state.view); renderList();
+  state.view = b.dataset.view; try { localStorage.setItem(VIEW_KEY, state.view); } catch {} renderList();
 });
 $("#stats").addEventListener("click", (e) => {
   const b = e.target.closest("[data-st]"); if (!b) return;
@@ -862,7 +862,7 @@ function submit(again) {
     note: form.note.value.trim(), updated: Date.now(),
   };
   if (!data.uz) { form.uz.focus(); return toast("Nomini yozing"); }
-  localStorage.setItem(LAST_KEY, JSON.stringify({ type: data.type, status: data.status }));
+  try { localStorage.setItem(LAST_KEY, JSON.stringify({ type: data.type, status: data.status })); } catch {}
   let it = editing;
   if (it) Object.assign(it, data);
   else { it = { id: uid(), order: Math.max(0, ...items.map((x) => x.order)) + 1, ...data }; items.push(it); }
@@ -891,7 +891,7 @@ document.addEventListener("keydown", (e) => {
 const THEME_KEY = "mening-royxatim-theme";
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  localStorage.setItem(THEME_KEY, t);
+  try { localStorage.setItem(THEME_KEY, t); } catch {}
   document.querySelectorAll("[data-theme-pick]").forEach((b) => b.classList.toggle("on", b.dataset.themePick === t));
   document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).getPropertyValue("--bg").trim();
 }
