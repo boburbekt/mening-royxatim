@@ -55,3 +55,38 @@ test('baho 0..10 oralig‘iga keltiriladi', async ({ page }) => {
   await page.locator('#ask').getByRole('button', { name: 'Almashtirish' }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).map((x) => x.rating))).toEqual([10, 0, 0]);
 });
+
+const merged = async (page, file) => {
+  await send(page, file);
+  await page.locator('#ask').getByRole('button', { name: 'Yangilash (birlashtirish)' }).click();
+  return page.evaluate(() => items.map((x) => [x.id, x.type, x.rating]));
+};
+
+test('birlashtirish: bir xil nomli Anime va Manga bir-birini bosib ketmaydi', async ({ page }) => {
+  await seedItems(page, [base({ id: 'm1', uz: 'Berserk', rating: 8, updated: 10 }), base({ id: 'm2', order: 2, uz: 'Berserk', type: 'Manga', rating: 10, updated: 10 })]);
+  await page.goto('/');
+  const r = await merged(page, [base({ id: 'f1', uz: 'Berserk', rating: 9, updated: 20 }), base({ id: 'f2', uz: 'Berserk', type: 'Manga', rating: 9, updated: 30 })]);
+  expect(r).toEqual([['m1', 'Anime', 9], ['m2', 'Manga', 9]]);
+});
+
+test('birlashtirish: boshqa turdagi bir xil nom yangi yozuv bo‘lib qo‘shiladi', async ({ page }) => {
+  await seedItems(page, [base({ id: 'm1', uz: 'Berserk', rating: 8, updated: 10 })]);
+  await page.goto('/');
+  const r = await merged(page, [base({ id: 'f1', uz: 'Berserk', rating: 5, updated: 5 }), base({ id: 'f2', uz: 'Berserk', type: 'Manga', rating: 9, updated: 30 })]);
+  expect(r).toEqual([['m1', 'Anime', 8], ['f2', 'Manga', 9]]);
+});
+
+test('birlashtirish: fayldagi bir xil id lar ikkalasi ham qo‘shiladi', async ({ page }) => {
+  await seedItems(page, [base({ id: 'm1', uz: 'Menda', updated: 10 })]);
+  await page.goto('/');
+  const r = await merged(page, [base({ id: 'd', uz: 'Bir' }), base({ id: 'd', order: 2, uz: 'Ikki' })]);
+  expect(r.length).toBe(3);
+  expect(new Set(r.map((x) => x[0])).size).toBe(3);
+});
+
+test('birlashtirish: meniki qolganda tier bo‘sh bo‘lsa fayldagi tier olinadi', async ({ page }) => {
+  await seedItems(page, [base({ id: 'm1', uz: 'Naruto', updated: 100, tier: '' }), base({ id: 'm2', order: 2, uz: 'Bleach', updated: 100, tier: 'B' })]);
+  await page.goto('/');
+  await merged(page, [base({ id: 'm1', uz: 'Naruto', updated: 50, tier: 'S' }), base({ id: 'm2', uz: 'Bleach', updated: 50, tier: 'A' })]);
+  expect(await page.evaluate(() => items.map((x) => x.tier))).toEqual(['S', 'B']);
+});

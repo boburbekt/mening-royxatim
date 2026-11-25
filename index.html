@@ -1639,26 +1639,30 @@ function mergeBackup(mine, incoming) {
   const out = mine.map((m) => ({ ...m }));
   const images = new Map();
   const byId = new Map(out.map((m) => [m.id, m]));
+  const tk = (it) => keysOf(it).map((k) => it.type + "|" + k);
   const byKey = new Map();
-  out.forEach((m) => keysOf(m).forEach((k) => { if (!byKey.has(k)) byKey.set(k, m); }));
+  out.forEach((m) => tk(m).forEach((k) => { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(m); }));
+  const used = new Set();
   const taken = new Set(out.map((m) => m.id));
   let added = 0, updated = 0, kept = 0, order = out.reduce((n, m) => Math.max(n, m.order || 0), 0);
   for (const { img, ...inc } of incoming) {
-    const m = byId.get(inc.id) || keysOf(inc).map((k) => byKey.get(k)).find(Boolean);
+    let m = byId.get(inc.id);
+    if (!m || used.has(m)) m = tk(inc).flatMap((k) => byKey.get(k) || []).find((x) => !used.has(x));
     if (m) {
+      used.add(m);
       if (inc.updated > m.updated) {
         Object.assign(m, inc, { id: m.id, order: m.order }); updated++;
         if (img) images.set(m.id, img);
       } else {
         kept++;
-        if (img && !IMG.has(m.id) && !images.has(m.id)) images.set(m.id, img);
+        if (!m.tier && inc.tier) m.tier = inc.tier;
+        if (img && !IMG.has(m.id)) images.set(m.id, img);
       }
       continue;
     }
     const id = taken.has(inc.id) ? uid() : inc.id;
     const it = { ...inc, id, order: ++order };
-    out.push(it); taken.add(id); byId.set(id, it);
-    keysOf(it).forEach((k) => { if (!byKey.has(k)) byKey.set(k, it); });
+    out.push(it); taken.add(id); used.add(it); byId.set(id, it);
     if (img) images.set(id, img);
     added++;
   }
