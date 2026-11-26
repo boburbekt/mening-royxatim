@@ -195,9 +195,9 @@
 
   .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:100;max-width:90vw;text-align:center}
   .toast.show{opacity:1}
-  .toast.act{display:flex;align-items:center;gap:12px;padding-right:6px}
+  .toast.act{display:flex;align-items:center;gap:12px;padding-right:6px;width:max-content}
   .toast.act.show{pointer-events:auto}
-  .toast button{background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;min-height:44px;min-width:44px;padding:0 12px;white-space:nowrap}
+  .toast button{flex:none;background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;min-height:44px;min-width:44px;padding:0 12px;white-space:nowrap}
 
   /* ---------- Tasdiqlash oynasi (askSheet) ---------- */
   #ask{width:min(360px,94vw);padding:18px 16px calc(14px + env(safe-area-inset-bottom))}
@@ -255,6 +255,13 @@
   .tpool-h small{font-size:13px;color:var(--muted);font-weight:400}
   .tpool{margin-bottom:14px}
   .tpool:empty::before{content:"Hammasi joylangan";color:var(--muted);font-size:13px;padding:8px}
+  .thint{margin:0 0 10px;color:var(--muted);font-size:13px}
+  .tposter{touch-action:manipulation;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .tposter img{pointer-events:none;-webkit-user-drag:none}
+  .tposter.tsrc{opacity:.35}
+  .tghost{position:fixed;left:0;top:0;z-index:50;width:56px;height:84px;border-radius:8px;overflow:hidden;pointer-events:none;box-shadow:0 10px 24px #0009;transform:translate(-50%,-60%) scale(1.12)}
+  .tghost .cover,.tghost .ph{width:100%;height:100%;display:grid;place-items:center;object-fit:cover;font-size:15px;font-weight:700;color:#fffc;background:linear-gradient(135deg,hsl(var(--h) 55% 38%),hsl(calc(var(--h) + 40) 55% 22%))}
+  .tcell.tover{outline:2px dashed var(--accent);outline-offset:-2px;background:color-mix(in srgb,var(--accent) 12%,var(--panel2))}
   @media (max-width:640px){
     #page{width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0;border:0}
   }
@@ -699,6 +706,9 @@ const cover = (it) => IMG.has(it.id)
 
 function toast(msg, { ms, action } = {}) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  // Ochiq modal oyna bo‘lsa toast uning ichiga ko‘chadi — aks holda oyna ortida qolib, tugmasi bosilmaydi
+  const host = ["#ask", "#page", "#dlg"].map((s) => document.querySelector(s)).find((d) => d?.open) || document.body;
+  if (t.parentElement !== host) host.append(t);
   t.classList.toggle("act", !!action);
   let b = null;
   if (action) {
@@ -1517,26 +1527,122 @@ async function drawTierCard() {
 function openTierPage() {
   const body = document.createElement("div");
   let sel = null, token = 0;
+  const inPool = (it) => it.status === "done" || it.status === "watching";
   const poster = (it) => `<button type="button" class="tposter" data-id="${esc(it.id)}" aria-pressed="${it.id === sel}" aria-label="${esc(it.uz || it.title)}">${cover(it)}</button>`;
   const draw = () => {
-    const pool = items.filter((it) => (it.status === "done" || it.status === "watching") && !it.tier).sort((a, b) => b.rating - a.rating || a.order - b.order);
-    body.innerHTML = `<div class="tbar"><button type="button" class="btn" data-auto>Avto to‘ldirish</button><button type="button" class="btn primary" data-img>Rasm qilish</button></div>`
-      + TIERS.map((t) => `<div class="trow" data-row="${t}"><button type="button" class="tl" data-tier="${t}" style="--tc:${TIER_COLOR[t]}" aria-label="${t} tierga qo‘yish">${t}</button><div class="tcell">${items.filter((it) => it.tier === t).sort((a, b) => b.rating - a.rating || a.order - b.order).map(poster).join("")}</div></div>`).join("")
-      + `<button type="button" class="tpool-h" data-pool>Joylanmagan <small>${pool.length} ta</small></button><div class="tpool tcell">${pool.map(poster).join("")}</div><div class="share-out"></div>`;
+    const pool = items.filter((it) => inPool(it) && !it.tier).sort((a, b) => b.rating - a.rating || a.order - b.order);
+    body.innerHTML = `<div class="tbar"><button type="button" class="btn" data-auto>Avto to‘ldirish</button><button type="button" class="btn" data-clear>Tozalash</button><button type="button" class="btn primary" data-img>Rasm qilish</button></div>`
+      + `<p class="thint">Posterni bosib turing va kerakli qatorga sudrang. Yoki posterni bosing, keyin S, A, B yoki C ni bosing.</p>`
+      + TIERS.map((t) => `<div class="trow" data-row="${t}"><button type="button" class="tl" data-tier="${t}" style="--tc:${TIER_COLOR[t]}" aria-label="${t} tierga qo‘yish">${t}</button><div class="tcell" data-drop="${t}">${items.filter((it) => it.tier === t).sort((a, b) => b.rating - a.rating || a.order - b.order).map(poster).join("")}</div></div>`).join("")
+      + `<button type="button" class="tpool-h" data-pool>Joylanmagan <small>${pool.length} ta</small></button><div class="tpool tcell" data-drop="">${pool.map(poster).join("")}</div><div class="share-out"></div>`;
   };
+  const setTier = (id, tier) => {
+    const it = items.find((x) => x.id === id); if (!it || it.tier === tier) return;
+    it.tier = tier; store(items);
+  };
+  // Ommaviy o‘zgarish (tozalash, avto) — bekor qilish imkoni bilan
+  const bulk = (change, msg) => {
+    const before = new Map(items.map((it) => [it.id, it.tier]));
+    const n = change(); if (!n) return false;
+    store(items); sel = null; draw();
+    toast(msg(n), { action: { label: "Bekor qilish", run: () => {
+      items.forEach((it) => { if (before.has(it.id)) it.tier = before.get(it.id); });
+      store(items); if (body.isConnected) draw();
+    } } });
+    return true;
+  };
+
+  /* Sudrab olib borish: sichqonchada darhol, barmoqda bosib turgandan keyin (aks holda sahifa aylantiriladi) */
+  let drag = null, skipClick = false;
+  // elementsFromPoint: ustida toast yoki boshqa qatlam bo‘lsa ham ostidagi qatorni topadi
+  const zoneAt = (x, y) => document.elementsFromPoint(x, y).map((el) => el.closest("#page [data-drop]")).find(Boolean) || null;
+  const endDrag = (apply) => {
+    if (!drag) return;
+    clearTimeout(drag.timer);
+    if (drag.on) {
+      drag.ghost.remove(); drag.src.classList.remove("tsrc"); drag.over?.classList.remove("tover");
+      if (apply && drag.over) { setTier(drag.id, drag.over.dataset.drop); sel = null; draw(); }
+      skipClick = true; setTimeout(() => { skipClick = false; }, 0);
+    }
+    drag = null;
+  };
+  const startDrag = () => {
+    drag.on = true;
+    drag.ghost = document.createElement("div"); drag.ghost.className = "tghost";
+    drag.ghost.innerHTML = drag.src.innerHTML; pageDlg.append(drag.ghost);
+    drag.src.classList.add("tsrc"); navigator.vibrate?.(15); moveDrag(drag.x, drag.y);
+  };
+  const moveDrag = (x, y) => {
+    drag.x = x; drag.y = y;
+    drag.ghost.style.left = x + "px"; drag.ghost.style.top = y + "px";
+    const z = zoneAt(x, y);
+    if (z !== drag.over) { drag.over?.classList.remove("tover"); drag.over = z; z?.classList.add("tover"); }
+    const sc = $("#pageBody"), r = sc.getBoundingClientRect(); // chetga yaqinlashsa o‘zi aylanadi
+    if (y < r.top + 60) sc.scrollTop -= 12; else if (y > r.bottom - 60) sc.scrollTop += 12;
+  };
+  body.addEventListener("pointerdown", (e) => {
+    const p = e.target.closest(".tposter"); if (!p || e.button > 0) return;
+    endDrag(false);
+    drag = { id: p.dataset.id, src: p, pid: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, on: false, over: null };
+    if (e.pointerType !== "mouse") drag.timer = setTimeout(() => { if (drag && !drag.on) startDrag(); }, 250);
+  });
+  const onMove = (e) => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (!drag.on) {
+      const far = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8;
+      if (!far) return;
+      if (e.pointerType === "mouse") { drag.x = e.clientX; drag.y = e.clientY; startDrag(); }
+      else { endDrag(false); return; } // barmoq bosib turmasdan siljidi — bu aylantirish
+    }
+    moveDrag(e.clientX, e.clientY);
+  };
+  const onUp = (e) => { if (drag && e.pointerId === drag.pid) endDrag(e.type === "pointerup"); };
+  const noScroll = (e) => { if (drag?.on) e.preventDefault(); };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+  document.addEventListener("touchmove", noScroll, { passive: false });
+  body.addEventListener("contextmenu", (e) => { if (e.target.closest(".tposter")) e.preventDefault(); });
+  pageDlg.addEventListener("close", function off() {
+    endDrag(false);
+    window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onUp); document.removeEventListener("touchmove", noScroll);
+    pageDlg.removeEventListener("close", off);
+  });
+
   body.addEventListener("click", async (e) => {
+    if (skipClick) return;
     const p = e.target.closest(".tposter"), tl = e.target.closest("[data-tier]"), pool = e.target.closest("[data-pool]");
-    const put = (tier) => {
-      const it = items.find((x) => x.id === sel); if (!it) return;
-      it.tier = tier; sel = null; store(items); draw();
-    };
+    const cell = e.target.closest("[data-drop]");
+    const put = (tier) => { setTier(sel, tier); sel = null; draw(); };
     if (p) { sel = sel === p.dataset.id ? null : p.dataset.id; draw(); }
     else if (tl && sel) put(tl.dataset.tier);
     else if (pool && sel) put("");
+    else if (cell && sel) put(cell.dataset.drop);
     else if (e.target.closest("[data-auto]")) {
-      let n = 0;
-      items.forEach((it) => { if (it.tier || (it.status !== "done" && it.status !== "watching")) return; const t = tierRank(it.rating); if (t) { it.tier = t; n++; } });
-      if (n) store(items); draw(); toast(n ? `${n} ta joylandi` : "Joylanadigan yozuv yo‘q");
+      const placed = items.some((it) => inPool(it) && it.tier);
+      const mode = placed ? await askSheet({
+        title: "Avto to‘ldirish", text: "Baholar bo‘yicha: 10 → S, 9 → A, 7–8 → B, 1–6 → C.",
+        options: [{ value: "empty", label: "Faqat joylanmaganlarni", tone: "primary" }, { value: "all", label: "Hammasini qaytadan joylash" }],
+      }) : "empty";
+      if (!mode) return;
+      const done = bulk(() => {
+        let n = 0;
+        items.forEach((it) => {
+          if (!inPool(it) || (mode === "empty" && it.tier)) return;
+          const t = tierRank(it.rating);
+          if ((t || mode === "all") && it.tier !== t) { it.tier = t; n++; }
+        });
+        return n;
+      }, (n) => `${n} ta joylandi`);
+      if (!done) toast(mode === "all" ? "O‘zgaradigan yozuv yo‘q" : "Joylanadigan yozuv yo‘q");
+    } else if (e.target.closest("[data-clear]")) {
+      if (!items.some((it) => it.tier)) return toast("Tier-list allaqachon bo‘sh");
+      if (await askSheet({
+        title: "Tier-list tozalansinmi?", text: "Hamma posterlar “Joylanmagan”ga qaytadi.",
+        options: [{ value: "ok", label: "Ha, tozalash", tone: "danger" }],
+      }) !== "ok") return;
+      bulk(() => { let n = 0; items.forEach((it) => { if (it.tier) { it.tier = ""; n++; } }); return n; }, () => "Tier-list tozalandi");
     } else if (e.target.closest("[data-img]")) {
       const my = ++token, host = body.querySelector(".share-out");
       host.innerHTML = '<div class="share-load">Rasm tayyorlanmoqda…</div>';
