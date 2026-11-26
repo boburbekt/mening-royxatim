@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { fresh, smallTargets, seedItems } from './helpers.mjs';
+import { fresh, freshBig, smallTargets, seedItems } from './helpers.mjs';
 
 test('bumpProgress jadvali', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   const cases = [['2-fasl, 14-qism', '2-fasl, 15-qism'], ['14/24', '15/24'], ['12', '13'], ['', '1-qism'], ['boshlanmadi', 'boshlanmadi, 1-qism'], ['3-fasl', '4-fasl']];
   for (const [a, b] of cases) expect(await page.evaluate((a) => bumpProgress(a), a)).toBe(b);
 });
 
 test('+1 qatordan', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   const row = page.locator('#list .row', { hasText: 'Elita sinfi' });   // watching
   await row.locator('[data-plus]').click();
   await expect(page.locator('#dlg')).toHaveJSProperty('open', false);
@@ -27,13 +27,13 @@ test('oxirgi qismda Ko‘rildi taklifi', async ({ page }) => {
 });
 
 test('+1 faqat Ko‘rilmoqda qatorlarida va ≥44px', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   await expect(page.locator('#list .row [data-plus]')).toHaveCount(6);
   expect(await smallTargets(page)).toEqual([]);
 });
 
 test('dialogdagi +1', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   await page.locator('#list .row .uz', { hasText: 'Qora beda' }).click();
   const more = page.locator('#more');
   if (!(await more.evaluate((d) => d.open))) await page.click('#more summary');

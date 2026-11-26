@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
-import { fresh, seedItems, smallTargets, overflowX, pngSize } from './helpers.mjs';
+import { fresh, freshBig, seedItems, smallTargets, overflowX, pngSize } from './helpers.mjs';
 
 test('yil rasmi 1080×1920 va yuklab olinadi', async ({ page }) => {
-  await fresh(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
+  await freshBig(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
   await expect(page.locator('#page')).toHaveJSProperty('open', true);
   const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#page').getByRole('button', { name: 'Yuklab olish' }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^mening-yilim-\d{4}\.png$/);
@@ -11,7 +11,7 @@ test('yil rasmi 1080×1920 va yuklab olinadi', async ({ page }) => {
 });
 
 test('doneAt yo‘q — umumiy', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   const s = await page.evaluate(() => yearStats(items, new Date().getFullYear()));
   expect(s.mode).toBe('all'); expect(s.count).toBe(62);
   expect(s.top.map((x) => x.rating)).toEqual([10, 10, 10]);
@@ -29,13 +29,13 @@ test('shu yil tugatilganlar', async ({ page }) => {
 
 test('ulashish tugmasi Web Share bo‘lsa chiqadi', async ({ page }) => {
   await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async (d) => { window.__shared = d.files[0].name; }; });
-  await fresh(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
+  await freshBig(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
   await page.locator('#page').getByRole('button', { name: 'Ulashish' }).click();
   expect(await page.evaluate(() => window.__shared)).toMatch(/\.png$/);
 });
 
 test('sahifa orqaga bilan yopiladi va mobil qoidalarga mos', async ({ page }) => {
-  await fresh(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
+  await freshBig(page); await page.click('#menuBtn'); await page.click('[data-act=year]');
   await expect(page.locator('#page .share-prev img')).toHaveAttribute('alt', 'Ulashiladigan rasm');
   await expect(page.locator('#page').getByRole('button', { name: 'Yuklab olish' })).toBeVisible();
   expect(await smallTargets(page)).toEqual([]); expect(await overflowX(page)).toBeLessThanOrEqual(0);

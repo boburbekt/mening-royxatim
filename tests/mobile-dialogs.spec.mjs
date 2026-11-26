@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { fresh, trapNativeDialogs } from './helpers.mjs';
+import { fresh, freshBig, trapNativeDialogs } from './helpers.mjs';
 
-test.beforeEach(async ({ page }) => { await trapNativeDialogs(page); await fresh(page); });
+test.beforeEach(async ({ page }) => { await trapNativeDialogs(page); await freshBig(page); });
 
 test('brauzer dialoglari ishlatilmaydi', async ({ page }) => {
   await page.locator('#list .row .uz').nth(2).click(); await page.click('#delBtn');
@@ -81,7 +81,7 @@ test('askSheet orqaga bilan yopiladi', async ({ page }) => {
 test('xotira bloklanganda ilova ishga tushadi', async ({ page }) => {
   await page.addInitScript(() => { localStorage.clear(); Storage.prototype.setItem = () => { throw new Error('blocked'); }; });
   await page.goto('/');
-  await expect(page.locator('#list .row')).toHaveCount(69);
+  await expect(page.locator('#list .row')).toHaveCount(5);
   await expect(page.locator('#toast')).toContainText('Brauzer xotiraga yozishga ruxsat bermadi — o‘zgarishlar saqlanmaydi. Zaxira fayl oling.');
 });
 

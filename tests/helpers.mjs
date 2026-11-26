@@ -1,3 +1,9 @@
+import { readFileSync } from 'node:fs';
+
+// Eski 69 ta yozuvli ro‘yxat: uzun ro‘yxat (scroll, tablar, solishtirish) testlari uchun.
+// Ilovaning boshlang‘ich ro‘yxati endi 5 ta anime — u baseline/pwa testlarida tekshiriladi.
+export const BIG_LIST = JSON.parse(readFileSync(new URL('./big-list.json', import.meta.url), 'utf8'));
+
 const blocked = new WeakSet();
 export async function fresh(page) {
   // Tashqi API’lar testlarda hech qachon haqiqiy tarmoqqa chiqmaydi (mockMeta page-route’i bundan ustun)
@@ -13,6 +19,13 @@ export async function fresh(page) {
       req.onsuccess = req.onerror = req.onblocked = () => resolve();
     });
   });
+  await page.reload();
+}
+
+// Toza holat + 69 ta yozuvli ro‘yxat (rasmsiz)
+export async function freshBig(page) {
+  await fresh(page);
+  await page.evaluate((list) => localStorage.setItem('mening-royxatim-v1', JSON.stringify(list)), BIG_LIST);
   await page.reload();
 }
 

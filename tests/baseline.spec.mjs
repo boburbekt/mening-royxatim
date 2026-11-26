@@ -1,11 +1,17 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
-import { fresh, overflowX } from './helpers.mjs';
+import { fresh, freshBig, overflowX } from './helpers.mjs';
 
-test('birinchi ochilishda 69 ta boshlang‘ich yozuv', async ({ page }) => {
+test('birinchi ochilishda 5 ta boshlang‘ich anime, rasmlari bilan', async ({ page }) => {
   await fresh(page);
-  await expect(page.locator('#list .row')).toHaveCount(69);
+  await expect(page.locator('#list .row')).toHaveCount(5);
+  await expect(page.locator('#list .row .uz')).toHaveText(['Yakka daraja oshirish', 'Friren: Sayohat yakunidan so‘ng', 'Qora beda', 'Shilliq sifatida qayta tug‘ilganim haqida', 'Arra odam']);
+  await expect(page.locator('#list .row img.cover')).toHaveCount(5);
+  for (const src of await page.locator('#list .row img.cover').evaluateAll((els) => els.map((e) => e.getAttribute('src')))) expect(src).toMatch(/^data:image\/jpeg/);
   expect(await page.evaluate(() => Object.keys(localStorage))).toContain('mening-royxatim-v1');
+  // rasmlar IndexedDB’ga yozilgan: qayta ochilganda ham turadi
+  await page.reload();
+  await expect(page.locator('#list .row img.cover')).toHaveCount(5);
 });
 
 test('mavjud ma’lumot saqlanadi', async ({ page }) => {
@@ -23,16 +29,18 @@ test('mavjud ma’lumot saqlanadi', async ({ page }) => {
 
 test('zaxira fayl formati', async ({ page }) => {
   await fresh(page);
+  await expect(page.locator('#list .row img.cover')).toHaveCount(5);
   await page.click('#menuBtn');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=export]')]);
   expect(dl.suggestedFilename()).toMatch(/^mening-royxatim-\d{4}-\d{2}-\d{2}\.json$/);
   const data = JSON.parse(await fs.readFile(await dl.path(), 'utf8'));
-  expect(data).toHaveLength(69);
-  expect(Object.keys(data[0]).sort()).toEqual(['doneAt','epMin','genres','id','note','order','progress','rating','status','tier','title','total','type','updated','uz']);
+  expect(data).toHaveLength(5);
+  expect(Object.keys(data[0]).sort()).toEqual(['doneAt','epMin','genres','id','img','note','order','progress','rating','status','tier','title','total','type','updated','uz']);
+  expect(data.every((x) => x.img.startsWith('data:image/'))).toBe(true);
 });
 
 test('desktop tuzilmasi o‘zgarmagan', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   await expect(page.locator('#stats .stat')).toHaveCount(5);   // Jami, 3 holat, O‘rtacha
   await expect(page.locator('#dist .bar')).toHaveCount(10);
   for (const s of ['#stats', '#dist', '#sort', '#addBtn']) await expect(page.locator(s)).toBeVisible();

@@ -17,7 +17,8 @@ test('oflayn qayta yuklash', async ({ page, context }) => {
   await page.reload();               // SW endi sahifani boshqaradi
   await context.setOffline(true);
   await page.reload();
-  await expect(page.locator('#list .row')).toHaveCount(69);
+  await expect(page.locator('#list .row')).toHaveCount(5);
+  await expect(page.locator('#list .row img.cover')).toHaveCount(5);
 });
 
 test('halol matnlar', async ({ page }) => {

@@ -1,7 +1,8 @@
-const CACHE = "royxat-v3";
+const CACHE = "royxat-v4";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest",
   "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
+  "seed/solo-leveling.jpg", "seed/frieren.jpg", "seed/black-clover.jpg", "seed/slime.jpg", "seed/chainsaw-man.jpg",
 ];
 
 self.addEventListener("install", (e) => {

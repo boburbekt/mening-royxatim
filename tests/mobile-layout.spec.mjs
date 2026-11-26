@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { fresh, overflowX, smallTargets } from './helpers.mjs';
+import { fresh, freshBig, overflowX, smallTargets } from './helpers.mjs';
 
-test.beforeEach(async ({ page }) => { await fresh(page); });
+test.beforeEach(async ({ page }) => { await freshBig(page); });
 
 test('ro‘yxat birinchi: birinchi qator y ≤ 200', async ({ page }) => {
   const box = await page.locator('#list .row').first().boundingBox();

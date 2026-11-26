@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { fresh, seedItems } from './helpers.mjs';
+import { fresh, freshBig, seedItems } from './helpers.mjs';
 
 const base = (o) => ({ order: 1, title: '', type: 'Anime', status: 'done', rating: 0, progress: '', note: '', updated: 0, ...o });
 const send = (page, data) => page.setInputFiles('#fileIn', { name: 'z.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) });
@@ -32,25 +32,25 @@ test('birlashtirish: nom bo‘yicha mos kelganda mening id va rasm kaliti qoladi
 });
 
 test('almashtirish avvalgidek', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   await send(page, [base({ id: 'x', uz: 'Yolg‘iz' })]);
   await page.locator('#ask').getByRole('button', { name: 'Almashtirish' }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).length)).toBe(1);
 });
 
 test('qurilmadan qurilmaga: eksport → boshqa qurilmada yangilash (rasmlar bilan)', async ({ browser }) => {
-  const a = await (await browser.newContext()).newPage(); await fresh(a);
+  const a = await (await browser.newContext()).newPage(); await freshBig(a);
   await a.evaluate(() => { setImage(items[0].id, 'data:image/png;base64,iVBORw0KGgo='); items[0].rating = 3; items[0].updated = Date.now(); save(); });
   await a.click('#menuBtn');
   const [dl] = await Promise.all([a.waitForEvent('download'), a.click('[data-act=export]')]);
-  const b = await (await browser.newContext()).newPage(); await fresh(b);
+  const b = await (await browser.newContext()).newPage(); await freshBig(b);
   await b.setInputFiles('#fileIn', await dl.path());
   await b.locator('#ask').getByRole('button', { name: 'Yangilash (birlashtirish)' }).click();
   expect(await b.evaluate(() => [items[0].rating, IMG.has(items[0].id), items.length])).toEqual([3, true, 69]);
 });
 
 test('baho 0..10 oralig‘iga keltiriladi', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   await send(page, [base({ id: 'p', uz: 'A', rating: 100 }), base({ id: 'q', order: 2, uz: 'B', rating: -3 }), base({ id: 'r', order: 3, uz: 'C', rating: 'x' })]);
   await page.locator('#ask').getByRole('button', { name: 'Almashtirish' }).click();
   expect(await page.evaluate(() => JSON.parse(localStorage['mening-royxatim-v1']).map((x) => x.rating))).toEqual([10, 0, 0]);
@@ -109,7 +109,7 @@ const evilId = 'q"><img src=x onerror="window.__xss=1">';
 const evilOrder = '1<img src=x onerror=window.__xss=2>';
 for (const how of ['Yangilash (birlashtirish)', 'Almashtirish']) {
   test(`zaxiradagi id va order HTML sifatida ishlamaydi (${how})`, async ({ page }) => {
-    await fresh(page);
+    await freshBig(page);
     await send(page, [base({ id: evilId, order: evilOrder, uz: 'Xavfli yozuv', updated: 5 })]);
     await page.locator('#ask').getByRole('button', { name: how }).click();
     await expect(page.locator('#toast')).toHaveClass(/show/);
@@ -129,7 +129,7 @@ for (const how of ['Yangilash (birlashtirish)', 'Almashtirish']) {
 }
 
 test('normalizeItem: id, order va updated tozalanadi, mavjud string id o‘zgarmaydi', async ({ page }) => {
-  await fresh(page);
+  await freshBig(page);
   const r = await page.evaluate(() => [
     normalizeItem({ id: 'abc123', order: 4, uz: 'A', status: 'done', updated: 1700 }, 0),
     normalizeItem({ id: { x: 1 }, order: '2<b>', uz: 'B', status: 'done', updated: 'x' }, 2),

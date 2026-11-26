@@ -563,77 +563,13 @@ const STATUS = { done: "Ko‘rilgan", watching: "Ko‘rilmoqda", plan: "Rejada",
 const STATUS_COLOR = { done: "var(--done)", watching: "var(--watching)", plan: "var(--plan)", dropped: "var(--dropped)" };
 const TYPES = ["Anime", "Manga", "Manhva", "Kino", "Serial"];
 
-// [asl nomi, o‘zbekcha nomi, holat, baho, izoh]
+// Yangi foydalanuvchi uchun boshlang‘ich ro‘yxat (rasmlari seed/ papkasida, sayt bilan birga keladi)
 const SEED = [
-  ["Tsukimichi: Moonlit Fantasy", "Oy boshchiligidagi boshqa dunyo", "done", 8],
-  ["Solo Leveling", "Yakka daraja oshirish", "done", 8],
-  ["Black Clover", "Qora beda", "done", 10],
-  ["The Wrong Way to Use Healing Magic", "Davolash sehridan noto‘g‘ri foydalanish", "done", 6],
-  ["Mashle: Magic and Muscles", "Mashl: Sehr va mushaklar", "done", 7],
-  ["Shangri-La Frontier", "Shangri-La chegarasi", "done", 9],
-  ["Frieren: Beyond Journey’s End", "Friren: Sayohat yakunidan so‘ng", "done", 9],
-  ["That Time I Got Reincarnated as a Slime", "Shilliq sifatida qayta tug‘ilganim haqida", "watching", 9],
-  ["Attack on Titan", "Titanlar hujumi", "done", 8],
-  ["Bleach", "Bleach", "done", 9],
-  ["Re:Zero − Starting Life in Another World", "Re:Zero", "done", 10],
-  ["Classroom of the Elite", "Elita sinfi", "watching", 7],
-  ["Mushoku Tensei: Jobless Reincarnation", "Omadsizning qayta tug‘ilishi", "done", 9],
-  ["Dr. Stone", "Doktor Stoun", "done", 9],
-  ["Devil May Cry", "Devil May Cry", "done", 7],
-  ["The Beginning After the End", "Oxiridan keyingi boshlanish", "watching", 5],
-  ["Sentenced to Be a Hero", "Mahbus qahramon 9004", "done", 6, "1-qism"],
-  ["Jujutsu Kaisen", "Jodugarlar jangi", "done", 9],
-  ["Hell’s Paradise", "Jahannam jannati", "done", 10],
-  ["One Punch Man", "Bir zarbli odam", "done", 10],
-  ["Spy x Family", "Josus x Oilasi", "done", 9],
-  ["My Hero Academia", "Mening qahramonlik akademiyam", "done", 10],
-  ["", "Zulmat farzandi", "watching", 4],
-  ["My Gift Lvl 9999 Unlimited Gacha", "Zindon tubida safdoshlarim menga xiyonat qildi. Lekin “Cheksizlik” qobiliyatim yordamida 9999-darajali ittifoqchilarni qo‘lga kiritdim…", "done", 6],
-  ["Gachiakuta", "Gachiakuta", "done", 9],
-  ["Lord of Mysteries", "Sirlar hukmdori", "done", 10],
-  ["The Apothecary Diaries", "Farmatsevt monologi", "watching", 9],
-  ["Parasyte: The Maxim", "Parazit — Hayot saboqlari", "done", 10],
-  ["Beelzebub", "Velzevul", "done", 7],
-  ["Death Note", "O‘lim daftari", "done", 8],
-  ["Fight Live", "Jonli efirda jang", "done", 7],
-  ["Arifureta: From Commonplace to World’s Strongest", "Arifureta", "done", 6],
-  ["Too Many Losing Heroines!", "Sevgida yutqizgan qizlar namuncha ko‘p", "done", 7],
-  ["", "Men eng kuchli sarguzashtchi bo‘lish uchun har doim mashq qildim", "done", 7],
-  ["", "Hayotdan diskvalifikatsiya qilingan", "done", 8],
-  ["Tower of God", "Ma’bud minorasi", "done", 9],
-  ["Suicide Squad Isekai", "O‘z joniga qasd qiluvchilar o‘zga dunyoda", "done", 7],
-  ["", "Telba detektiv", "done", 8],
-  ["The Unwanted Undead Adventurer", "O‘lmas sarguzashtchi", "done", 6],
-  ["", "Qayta tug‘ilgan aristokrat", "done", 7],
-  ["Summer Time Rendering", "Yoz vaqti", "done", 9],
-  ["91 Days", "91 kun", "done", 9],
-  ["Wind Breaker", "Shamolni bo‘ysundirish", "done", 7],
-  ["", "Past malakali ninja", "done", 8],
-  ["The Witch and the Beast", "Jodugar va maxluq", "done", 7],
-  ["DanMachi", "Zindonda qizlar bilan uchrashish yomonmi?", "done", 8],
-  ["Lookism", "Lukizm", "done", 9],
-  ["", "Tog‘amning qayta tug‘ilishi", "done", 7],
-  ["Fuuto PI", "Fuuto detektivlari", "done", 8],
-  ["Heavenly Delusion", "Jannat sarobi", "done", 9],
-  ["Mob Psycho 100", "Mob Psixo 100", "done", 9],
-  ["The Kingdoms of Ruin", "Xarobalar qirolligi", "done", 7],
-  ["Tokyo Revengers", "Tokyo qasoskorlari", "done", 9],
-  ["Berserk of Gluttony", "Ochko‘z Berserk", "done", 7],
-  ["The Rising of the Shield Hero", "Qalqon qahramoni", "done", 10],
-  ["Masamune-kun’s Revenge", "Masamune qasosi", "done", 6],
-  ["Angels of Death", "O‘lim farishtasi", "done", 8],
-  ["Dororo", "Dororo", "done", 10],
-  ["The Seven Deadly Sins", "Yetti o‘lim gunohi", "watching", 8],
-  ["Darwin’s Game", "Darvin o‘yini", "done", 7],
-  ["Seraph of the End", "So‘nggi serafim", "done", 8],
-  ["Chainsaw Man", "Arra odam", "done", 10],
-  ["", "Qahramon X", "done", 10],
-  ["", "Baholovchi", "done", 6],
-  ["Demon Lord 2099", "Iblislar hukmdori 2099", "done", 6],
-  ["Blue Lock", "Ko‘k zindon", "done", 9],
-  ["Dandadan", "Dandadan", "done", 10],
-  ["", "Qotil Seven", "plan", 8],
-  ["Zom 100: Bucket List of the Dead", "Zombi 100", "done", 7],
+  { title: "Solo Leveling", uz: "Yakka daraja oshirish", status: "done", rating: 8, img: "seed/solo-leveling.jpg" },
+  { title: "Frieren: Beyond Journey’s End", uz: "Friren: Sayohat yakunidan so‘ng", status: "done", rating: 9, img: "seed/frieren.jpg" },
+  { title: "Black Clover", uz: "Qora beda", status: "done", rating: 10, img: "seed/black-clover.jpg" },
+  { title: "That Time I Got Reincarnated as a Slime", uz: "Shilliq sifatida qayta tug‘ilganim haqida", status: "watching", rating: 9, img: "seed/slime.jpg" },
+  { title: "Chainsaw Man", uz: "Arra odam", status: "done", rating: 10, img: "seed/chainsaw-man.jpg" },
 ];
 
 const toCount = (v) => { const n = Math.floor(+v); return n > 0 && isFinite(n) ? n : 0; };
@@ -664,11 +600,23 @@ function setStatus(it, status) {
   else if (status !== "done") it.doneAt = 0;
 }
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-const seedItems = () => SEED.map((r, i) => ({
-  id: uid(), order: i + 1, title: r[0], uz: r[1], type: "Anime", status: r[2],
-  rating: r[3], progress: "", note: r[4] || "", updated: 0,
-  doneAt: 0, total: 0, epMin: 0, genres: [], tier: "",
-}));
+const SEED_IMG = new Map(); // yangi boshlang‘ich yozuv id → rasm fayli (hali xotiraga yozilmagan)
+const seedItems = () => SEED.map((r, i) => {
+  const id = uid(); SEED_IMG.set(id, r.img);
+  return {
+    id, order: i + 1, title: r.title, uz: r.uz, type: "Anime", status: r.status,
+    rating: r.rating, progress: "", note: "", updated: 0,
+    doneAt: 0, total: 0, epMin: 0, genres: [], tier: "",
+  };
+});
+// Boshlang‘ich yozuvlar rasmlarini data: URL qilib saqlash (zaxira faylga ham, canvas rasmlarga ham tushadi)
+async function loadSeedImages() {
+  const jobs = [...SEED_IMG]; SEED_IMG.clear();
+  await Promise.all(jobs.map(async ([id, src]) => {
+    try { const img = await urlToThumb(src); if (items.some((x) => x.id === id) && !IMG.has(id)) setImage(id, img); } catch {}
+  }));
+  renderList();
+}
 
 /* ---------- Saqlash: yozuvlar localStorage’da, rasmlar IndexedDB’da ---------- */
 function store(v) {
@@ -1812,7 +1760,7 @@ $("#menu .menu-list").addEventListener("click", async (e) => {
     title: "Boshlang‘ich ro‘yxatga qaytarilsinmi?", text: "Hozirgi ro‘yxat va rasmlar o‘chadi. Avval zaxira fayl oling.",
     options: [{ value: "ok", label: "Ha, qaytarish", tone: "danger" }],
   })) {
-    items = seedItems(); IMG.clear(); DB.clear().catch(() => {}); save(); toast("Boshlang‘ich ro‘yxat tiklandi");
+    items = seedItems(); IMG.clear(); DB.clear().catch(() => {}); save(); loadSeedImages(); toast("Boshlang‘ich ro‘yxat tiklandi");
   }
 });
 /* Zaxira faylni mavjud ro‘yxatga qo‘shish (sof funksiya: items va IMG ga tegmaydi) */
@@ -1880,6 +1828,7 @@ $("#fileIn").addEventListener("change", async (e) => {
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) navigator.serviceWorker.register("sw.js");
 $("#sort").value = state.sort;
 render();
+if (SEED_IMG.size) loadSeedImages(); // birinchi ochilish
 DB.all().then((m) => { m.forEach((v, k) => IMG.set(k, v)); if (m.size) renderList(); })
   .catch(() => toast("Rasmlar xotirasi ochilmadi — rasmlar saqlanmaydi"));
 </script>

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { fresh, overflowX } from './helpers.mjs';
+import { fresh, freshBig, overflowX } from './helpers.mjs';
 
-test.beforeEach(async ({ page }) => { await fresh(page); });
+test.beforeEach(async ({ page }) => { await freshBig(page); });
 
 test('iOS zoom yo‘q: maydonlar ≥16px', async ({ page }) => {
   await page.click('#fab'); await page.click('#more summary');
