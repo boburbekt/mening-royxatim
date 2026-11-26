@@ -49,7 +49,13 @@
   .menu{position:relative}
   .menu-list{position:absolute;right:0;top:calc(100% + 6px);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;width:min(250px,calc(100vw - 32px));z-index:20;display:none;box-shadow:0 12px 30px #0008}
   .menu.open .menu-list{display:block}
-  .menu-list button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
+  .menu-list button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;cursor:pointer}
+  .menu-list button .ic{width:18px;height:18px;flex:none;color:var(--muted)}
+  .ic{flex:none}
+  .btn.sm .ic{width:16px;height:16px;vertical-align:-3px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shimmer{to{background-position:-200% 0}}
+  @media (prefers-reduced-motion:reduce){.drop.loading::before,.find[aria-busy=true] .ic,.sug-load .sk{animation-duration:2.4s}}
   .menu-list button:hover{background:var(--line)}
   .menu-list .note{margin:6px 12px 4px;font-size:12px;color:var(--muted);line-height:1.4}
   .themes{display:flex;align-items:center;gap:6px;padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;flex-wrap:wrap}
@@ -160,7 +166,8 @@
   .drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .drop .big{font-size:30px;display:block;margin-bottom:4px}
   .drop small{display:block;font-size:11px;margin-top:4px;padding:0 8px}
-  .drop.loading::after{content:"Yuklanmoqda…";position:absolute;inset:0;display:grid;place-items:center;background:#000a;color:#fff}
+  .drop.loading::after{content:"Yuklanmoqda…";position:absolute;inset:0;display:grid;place-items:center;padding-top:64px;background:#000a;color:#fff;z-index:1}
+  .drop.loading::before{content:"";position:absolute;top:calc(50% - 30px);left:calc(50% - 18px);width:36px;height:36px;border-radius:50%;border:3px solid #fff4;border-top-color:#fff;animation:spin .8s linear infinite;z-index:2}
   .media-acts{display:flex;gap:6px;flex-wrap:wrap}
   .media-acts .btn{flex:1}
   .urlbox{display:none;gap:6px}
@@ -178,6 +185,10 @@
   .dup{font-size:13px;color:var(--plan);margin-top:6px}
   .find{margin-top:8px;font-size:13px;min-height:44px}
   #sugg{display:grid;gap:6px;margin-top:8px}
+  .sug-load{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:13px}
+  .sug-load .sk{width:40px;height:60px;flex:none;border-radius:6px;background:linear-gradient(90deg,var(--panel) 0,var(--line) 50%,var(--panel) 100%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+  .find[aria-busy=true]{pointer-events:none;opacity:.8}
+  .find[aria-busy=true] .ic{animation:spin .8s linear infinite}
   #sugg[hidden]{display:none}
   .sug{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:8px 10px;text-align:left;font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:10px;cursor:pointer}
   .sug:hover{border-color:var(--line2)}
@@ -369,9 +380,9 @@
   <header>
     <h1>Mening <span>ro‘yxatim</span></h1>
     <button class="stats-btn" id="statsBtn" aria-expanded="false" aria-controls="overview" aria-label="Statistika">⌀ —</button>
-    <button class="btn primary" id="addBtn" title="Yangi qo‘shish (N)">+ Qo‘shish</button>
+    <button class="btn primary" id="addBtn" title="Yangi qo‘shish (N)"><i data-icon="plus"></i> Qo‘shish</button>
     <div class="menu" id="menu">
-      <button class="btn" id="menuBtn" aria-label="Boshqa amallar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+      <button class="btn" id="menuBtn" aria-label="Boshqa amallar"><i data-icon="menu"></i></button>
       <div class="menu-list">
         <div class="themes" id="themes">
           <span class="lbl">Rang</span>
@@ -382,14 +393,14 @@
           <button class="sw" data-theme-pick="rose" style="--c:#ff5c8a" aria-label="Pushti" title="Pushti"></button>
           <button class="sw" data-theme-pick="light" style="--c:linear-gradient(135deg,#fff 50%,#6d5ce8 50%)" aria-label="Yorug‘" title="Yorug‘ (oq fon)"></button>
         </div>
-        <button data-act="year">Mening yilim — rasm</button>
-        <button data-act="tier">Tier-list</button>
-        <button data-act="copy">Matn ko‘rinishida nusxalash</button>
-        <button data-act="export">Zaxira faylni yuklab olish (rasmlar bilan)</button>
-        <button data-act="shareBackup" hidden>Zaxira faylni ulashish (Telegram…)</button>
-        <button data-act="compare">Do‘st bilan solishtirish</button>
-        <button data-act="import">Zaxira fayldan yangilash / tiklash</button>
-        <button data-act="reset">Boshlang‘ich ro‘yxatga qaytarish</button>
+        <button data-act="year"><i data-icon="year"></i>Mening yilim — rasm</button>
+        <button data-act="tier"><i data-icon="tier"></i>Tier-list</button>
+        <button data-act="copy"><i data-icon="copy"></i>Matn ko‘rinishida nusxalash</button>
+        <button data-act="export"><i data-icon="download"></i>Zaxira faylni yuklab olish (rasmlar bilan)</button>
+        <button data-act="shareBackup" hidden><i data-icon="share"></i>Zaxira faylni ulashish (Telegram…)</button>
+        <button data-act="compare"><i data-icon="users"></i>Do‘st bilan solishtirish</button>
+        <button data-act="import"><i data-icon="upload"></i>Zaxira fayldan yangilash / tiklash</button>
+        <button data-act="reset"><i data-icon="reset"></i>Boshlang‘ich ro‘yxatga qaytarish</button>
         <p class="note">Ma’lumot faqat shu qurilmadagi brauzerda saqlanadi. Boshqa qurilmaga o‘tkazish uchun zaxira fayl oling.</p>
       </div>
     </div>
@@ -412,10 +423,10 @@
       <option value="name">Nomi (A–Z)</option>
       <option value="recent">Oxirgi o‘zgargan</option>
     </select>
-    <button class="sort-btn" id="sortBtn" aria-label="Saralash"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg></button>
+    <button class="sort-btn" id="sortBtn" aria-label="Saralash"><i data-icon="sort"></i></button>
     <div class="views" id="views">
-      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg><span class="vt"> Ro‘yxat</span></button>
-      <button data-view="grid" aria-label="Poster ko‘rinishi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><span class="vt"> Poster</span></button>
+      <button data-view="list" aria-label="Ro‘yxat ko‘rinishi"><i data-icon="list"></i><span class="vt"> Ro‘yxat</span></button>
+      <button data-view="grid" aria-label="Poster ko‘rinishi"><i data-icon="grid"></i><span class="vt"> Poster</span></button>
     </div>
   </div>
   <nav id="tabs" role="tablist" aria-label="Holat"></nav>
@@ -425,24 +436,24 @@
   <div id="list"></div>
 </div>
 
-<button class="fab" id="fab" aria-label="Yangi qo‘shish"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<button class="fab" id="fab" aria-label="Yangi qo‘shish"><i data-icon="plus"></i></button>
 
 <dialog id="dlg" aria-labelledby="dlgTitle">
   <form class="sheet" id="form" novalidate>
     <div class="sheet-head">
       <h2 id="dlgTitle">Yangi qo‘shish</h2>
-      <button type="button" class="x" id="closeBtn" aria-label="Yopish"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="button" class="x" id="closeBtn" aria-label="Yopish"><i data-icon="close"></i></button>
     </div>
 
     <div class="sheet-body">
       <div class="media">
         <button type="button" class="drop" id="drop" aria-label="Rasm qo‘shish">
           <img id="prev" alt="" hidden>
-          <span id="dropHint"><span class="big"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-8 9"/></svg></span>Rasm qo‘shish<small>bosing, sudrab tashlang yoki Ctrl+V</small></span>
+          <span id="dropHint"><span class="big"><i data-icon="image"></i></span>Rasm qo‘shish<small>bosing, sudrab tashlang yoki Ctrl+V</small></span>
         </button>
         <div class="media-acts">
-          <button type="button" class="btn sm" id="urlBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> Havola</button>
-          <button type="button" class="btn sm danger" id="rmImg" hidden>Olib tashlash</button>
+          <button type="button" class="btn sm" id="urlBtn"><i data-icon="link"></i> Havola</button>
+          <button type="button" class="btn sm danger" id="rmImg" hidden><i data-icon="trash"></i> Olib tashlash</button>
         </div>
         <div class="urlbox" id="urlBox">
           <input class="field" id="urlIn" type="url" placeholder="https://…rasm.jpg" inputmode="url">
@@ -456,7 +467,7 @@
           <label class="lbl" for="fUz">Nomi *</label>
           <input class="field" id="fUz" name="uz" autocomplete="off" placeholder="masalan: Naruto" enterkeyhint="done">
           <div class="dup" id="dup" hidden></div>
-          <button type="button" class="btn find" id="findBtn">Internetdan topish</button>
+          <button type="button" class="btn find" id="findBtn"><i data-icon="search"></i> Internetdan topish</button>
           <div id="sugg" role="listbox" aria-label="Internetdan topilgan natijalar" hidden></div>
         </div>
 
@@ -500,17 +511,17 @@
     </div>
 
     <div class="sheet-foot">
-      <button type="button" class="btn danger" id="delBtn">O‘chirish</button>
+      <button type="button" class="btn danger" id="delBtn"><i data-icon="trash"></i> O‘chirish</button>
       <span class="sp"></span>
       <button type="button" class="btn" id="againBtn" title="Saqlab, keyingisini qo‘shish">Saqlash va yana +</button>
-      <button type="submit" class="btn primary">Saqlash</button>
+      <button type="submit" class="btn primary"><i data-icon="check"></i> Saqlash</button>
     </div>
   </form>
 </dialog>
 
 <dialog id="ask" aria-labelledby="askTitle"></dialog>
 <dialog id="page" aria-labelledby="pageTitle">
-  <div class="page-head"><h2 id="pageTitle"></h2><button type="button" id="pageClose" aria-label="Yopish">×</button></div>
+  <div class="page-head"><h2 id="pageTitle"></h2><button type="button" id="pageClose" aria-label="Yopish"><i data-icon="close"></i></button></div>
   <div id="pageBody"></div>
 </dialog>
 
@@ -520,9 +531,34 @@
 const KEY = "mening-royxatim-v1";
 const VIEW_KEY = "mening-royxatim-view";
 const LAST_KEY = "mening-royxatim-last";
+/* ICONS:START — tools/sync-icons.mjs yozadi, qo‘lda o‘zgartirmang */
 const ICON = {
-  chevron: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  chevron: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
+  menu: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>',
+  sort: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>',
+  list: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>',
+  grid: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+  plus: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+  close: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+  image: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 5h6"/><path d="M19 2v6"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><circle cx="9" cy="9" r="2"/></svg>',
+  link: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  search: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>',
+  loader: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
+  trash: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  check: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+  year: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.127 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v5.125"/><path d="M14.62 17.8A2.25 2.25 0 1118 14.836a2.25 2.25 0 113.38 2.966l-2.626 2.856a.998.998 0 01-1.507 0z"/><path d="M16 2v3"/><path d="M3 9h18"/><path d="M8 2v3"/></svg>',
+  tier: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/></svg>',
+  copy: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  download: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>',
+  share: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>',
+  users: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></svg>',
+  upload: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>',
+  reset: '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
 };
+/* ICONS:END */
+// HTML’dagi <i data-icon="nom"> joylarini haqiqiy SVG bilan almashtirish
+const putIcons = (root = document) => root.querySelectorAll("i[data-icon]").forEach((el) => { el.outerHTML = ICON[el.dataset.icon] || ""; });
+putIcons();
 const STATUS = { done: "Ko‘rilgan", watching: "Ko‘rilmoqda", plan: "Rejada", dropped: "Tashlangan" };
 const STATUS_COLOR = { done: "var(--done)", watching: "var(--watching)", plan: "var(--plan)", dropped: "var(--dropped)" };
 const TYPES = ["Anime", "Manga", "Manhva", "Kino", "Serial"];
@@ -1067,6 +1103,9 @@ $("#typeOpts").innerHTML = TYPES.map((t) =>
   `<label class="opt"><input type="radio" name="type" value="${t}"><span>${t}</span></label>`).join("");
 
 let editing = null, curRating = 0, curImg = null, curMeta = null, dlgGen = 0;
+// Internetdan tanlangan natija nimani to‘ldirgani: qayta tanlanganda shu qiymatlar yangisiga almashadi,
+// foydalanuvchi qo‘lda yozgan/qo‘shgan narsa esa saqlanib qoladi
+let autoFill = { title: "", total: "", img: null }, imgManual = false, pickGen = 0;
 const RATE_WORDS = ["", "dahshat", "juda yomon", "yomon", "zaif", "o‘rtacha", "chidasa bo‘ladi", "yaxshi", "juda yaxshi", "a’lo", "eng zo‘ri!"];
 
 function drawStars() {
@@ -1088,7 +1127,7 @@ function drawImg() {
 async function takeFile(f) {
   if (!f || !f.type.startsWith("image/")) return toast("Bu rasm fayli emas");
   $("#drop").classList.add("loading");
-  try { curImg = await fileToThumb(f); drawImg(); }
+  try { curImg = await fileToThumb(f); imgManual = true; drawImg(); }
   catch { toast("Bu rasmni o‘qib bo‘lmadi"); }
   finally { $("#drop").classList.remove("loading"); }
 }
@@ -1104,13 +1143,13 @@ document.addEventListener("paste", (e) => {
   const f = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith("image/"));
   if (f) { e.preventDefault(); takeFile(f); }
 });
-$("#rmImg").addEventListener("click", () => { curImg = null; drawImg(); });
+$("#rmImg").addEventListener("click", () => { curImg = null; imgManual = false; drawImg(); });
 $("#urlBtn").addEventListener("click", () => { $("#urlBox").classList.toggle("on"); $("#urlIn").focus(); });
 async function takeUrl() {
   const u = $("#urlIn").value.trim(); if (!u) return;
   if (!/^https?:\/\//i.test(u)) return toast("Havola http:// yoki https:// bilan boshlanishi kerak");
   $("#drop").classList.add("loading");
-  try { curImg = await urlToThumb(u); drawImg(); $("#urlIn").value = ""; $("#urlBox").classList.remove("on"); }
+  try { curImg = await urlToThumb(u); imgManual = true; drawImg(); $("#urlIn").value = ""; $("#urlBox").classList.remove("on"); }
   catch { toast("Bu havoladan rasm ochilmadi"); }
   finally { $("#drop").classList.remove("loading"); }
 }
@@ -1164,12 +1203,22 @@ async function tvmazeEpisodes(id) {
 }
 
 let suggAbort = null, suggTimer = 0, suggList = [];
+function setSearching(on) {
+  const b = $("#findBtn");
+  if (on) b.setAttribute("aria-busy", "true"); else b.removeAttribute("aria-busy");
+  b.querySelector(".ic").outerHTML = on ? ICON.loader : ICON.search;
+}
 function clearSugg() {
-  clearTimeout(suggTimer); suggAbort?.abort(); suggAbort = null;
+  clearTimeout(suggTimer); suggAbort?.abort(); suggAbort = null; setSearching(false);
   suggList = []; $("#sugg").hidden = true; $("#sugg").innerHTML = "";
 }
+function drawSuggLoading() {
+  setSearching(true);
+  const box = $("#sugg"); box.hidden = false;
+  box.innerHTML = `<div class="sug-load" role="status"><span class="sk"></span>Internetdan qidirilmoqda…</div>`;
+}
 function drawSugg(list) {
-  suggList = list;
+  suggList = list; setSearching(false);
   const box = $("#sugg"); box.hidden = !list.length;
   box.innerHTML = list.map((m, i) =>
     `<button type="button" class="sug" role="option" data-i="${i}"><img src="${esc(m.cover)}" alt="" width="40" height="60" loading="lazy" referrerpolicy="no-referrer"${m.cover ? "" : " hidden"}><span class="tx"><b>${esc(m.title)}</b><small>${esc(m.sub)}</small></span></button>`).join("");
@@ -1177,6 +1226,7 @@ function drawSugg(list) {
 async function runSearch(q, manual) {
   suggAbort?.abort();
   const ac = suggAbort = new AbortController(), gen = dlgGen;
+  drawSuggLoading();
   const list = await searchMeta(q, form.type.value || "Anime", ac.signal);
   if (ac.signal.aborted || gen !== dlgGen || !dlg.open) return;
   drawSugg(list);
@@ -1198,17 +1248,35 @@ $("#findBtn").addEventListener("click", () => {
 });
 $("#sugg").addEventListener("click", async (e) => {
   const b = e.target.closest(".sug"); if (!b) return;
-  const m = suggList[+b.dataset.i], gen = dlgGen; if (!m) return;
-  // Foydalanuvchi yozgan nom (uz) o‘zgarmaydi: faqat bo‘sh maydonlar to‘ldiriladi
+  const m = suggList[+b.dataset.i], gen = dlgGen, pick = ++pickGen; if (!m) return;
+  const live = () => gen === dlgGen && pick === pickGen; // keyinroq boshqa natija tanlansa, eskisi hech narsa yozmaydi
+  // Foydalanuvchi yozgan nom (uz) o‘zgarmaydi. Asl nomi va jami qismlar: bo‘sh bo‘lsa yoki
+  // oldingi tanlov to‘ldirgan bo‘lsa — yangisi yoziladi; qo‘lda yozilgani o‘zgarmaydi.
   curMeta = { epMin: m.epMin, genres: m.genres };
-  if (!form.title.value.trim()) form.title.value = m.title;
+  const t = form.title.value.trim();
+  if (!t || t === autoFill.title) { form.title.value = m.title; autoFill.title = m.title; }
   clearSugg(); $("#more").open = true;
   toast(`Topildi: ${m.title}`);
-  if (m.src === "tvmaze") m.total = await tvmazeEpisodes(m.id);
-  if (gen !== dlgGen) return;
-  if (m.total && !toCount(form.total.value)) form.total.value = m.total;
-  if (!curImg && m.cover) {
-    try { const img = await urlToThumb(m.cover); if (gen === dlgGen && !curImg) { curImg = img; drawImg(); } } catch {}
+  const drop = $("#drop"), takeImg = !imgManual;
+  if (takeImg) drop.classList.add("loading");
+  try {
+    if (m.src === "tvmaze") m.total = await tvmazeEpisodes(m.id);
+    if (!live()) return;
+    const cur = form.total.value.trim();
+    if (!toCount(cur) || cur === autoFill.total) {
+      form.total.value = m.total || ""; autoFill.total = form.total.value;
+    }
+    if (takeImg) {
+      // Tanlangan natijaning rasmi oldingi (internetdan kelgan) rasm o‘rniga qo‘yiladi
+      let img = null;
+      if (m.cover) { try { img = await urlToThumb(m.cover); } catch {} }
+      if (live() && !imgManual) {
+        if (img) { curImg = autoFill.img = img; drawImg(); }
+        else if (curImg && curImg === autoFill.img) { curImg = autoFill.img = null; drawImg(); } // eski natijaning rasmi qolmasin
+      }
+    }
+  } finally {
+    if (pick === pickGen) drop.classList.remove("loading");
   }
 });
 
@@ -1244,6 +1312,7 @@ function openDialog(it) {
   curRating = it?.rating || 0; drawStars();
   curImg = it ? IMG.get(it.id) || null : null; drawImg();
   curMeta = null; dlgGen++; clearSugg();
+  autoFill = { title: "", total: "", img: null }; imgManual = false; pickGen++; $("#drop").classList.remove("loading");
   $("#urlBox").classList.remove("on"); $("#dup").hidden = true;
   setSaveDisabled();
   if (!dlg.open) { dlg.showModal(); openLayer(() => dlg.close()); }

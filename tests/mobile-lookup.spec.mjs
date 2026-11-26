@@ -73,3 +73,57 @@ test('#sugg yashirin bo‘lsa joy egallamaydi', async ({ page }) => {
   await fresh(page); await page.click('#fab');
   expect(await page.evaluate(() => [$('#sugg').hidden, getComputedStyle($('#sugg')).display])).toEqual([true, 'none']);
 });
+
+// Har bir poster havolasi uchun boshqa rangli rasm — qaysi rasm qo‘yilganini ajratish uchun
+const colorSvg = (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="30"><rect width="20" height="30" fill="${c}"/></svg>`;
+async function colorCovers(page) {
+  await page.route(/^https:\/\/s4\.anilist\.co\//, (route) => {
+    const c = { '1': '#f00', '2': '#0f0', '3': '#00f' }[route.request().url().match(/\/(\d)\.png$/)?.[1]] || '#888';
+    return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-type': 'image/svg+xml' }, body: colorSvg(c) });
+  });
+}
+const prevSrc = (page) => page.locator('#prev').getAttribute('src');
+
+test('boshqa natija qayta tanlansa rasm, asl nomi va qismlar yangilanadi', async ({ page }) => {
+  await mockMeta(page, { anilist: [1, 2, 3].map(media) }); await colorCovers(page);
+  await fresh(page); await page.click('#fab'); await page.fill('#fUz', 'Naruto');
+  await page.locator('#sugg .sug').nth(0).click();
+  await expect(page.locator('#prev')).toBeVisible();
+  await expect(page.locator('#fTitle')).toHaveValue('Naruto English 1');
+  await expect(page.locator('#fTotal')).toHaveValue('13');
+  const first = await prevSrc(page);
+
+  await page.click('#findBtn');
+  await page.locator('#sugg .sug').nth(2).click();
+  await expect(page.locator('#fTitle')).toHaveValue('Naruto English 3');
+  await expect(page.locator('#fTotal')).toHaveValue('15');
+  await expect.poll(() => prevSrc(page)).not.toBe(first);
+  await expect(page.locator('#drop')).not.toHaveClass(/loading/);
+});
+
+test('qo‘lda qo‘shilgan rasm internetdan tanlanganda almashmaydi', async ({ page }) => {
+  await mockMeta(page, { anilist: [media(1)] }); await colorCovers(page);
+  await fresh(page); await page.click('#fab'); await page.fill('#fUz', 'Naruto');
+  await page.locator('#urlBtn').click();
+  await page.fill('#urlIn', 'https://s4.anilist.co/9.png'); await page.click('#urlOk');
+  await expect(page.locator('#prev')).toBeVisible();
+  await expect.poll(() => prevSrc(page)).not.toBeNull();
+  const mine = await prevSrc(page);
+  await page.click('#findBtn');
+  await page.locator('#sugg .sug').click();
+  await expect(page.locator('#fTitle')).toHaveValue('Naruto English 1');
+  expect(await prevSrc(page)).toBe(mine);
+});
+
+test('API javobi kelguncha loading ko‘rinadi', async ({ page }) => {
+  await mockMeta(page, { anilist: [media(1)] });
+  let release; const gate = new Promise((r) => { release = r; });
+  await page.route('https://graphql.anilist.co/**', async (route) => { await gate; return route.fallback(); });
+  await fresh(page); await page.click('#fab'); await page.fill('#fUz', 'Naruto');
+  await expect(page.locator('#sugg .sug-load')).toBeVisible();
+  await expect(page.locator('#findBtn')).toHaveAttribute('aria-busy', 'true');
+  release();
+  await expect(page.locator('#sugg .sug')).toHaveCount(1);
+  await expect(page.locator('#sugg .sug-load')).toHaveCount(0);
+  await expect(page.locator('#findBtn')).not.toHaveAttribute('aria-busy', 'true');
+});
